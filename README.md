@@ -63,7 +63,7 @@ Creates a new project in the current directory.
 
 ### Build project command
 ```bash
-cpm build
+cpm build <flags>
 ```
 Builds the project and puts the output objects and binaries in the $project.build.bin folder.
 
@@ -128,3 +128,5 @@ cpm install
 ```
 
 Will fetch all the packages required for the code to run into the lib folder.
+
+**More commands coming**
