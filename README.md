@@ -53,9 +53,31 @@ Creates a new project in the current directory.
       "bin": ["./build/bin"],
       "macros": [],
     },
+    "type": "executable"
   },
   "dependencies": {
   }
 }
 ```
 
+### Build project command
+```bash
+cpm build
+```
+Builds the project and puts the output objects and binaries in the $project.build.bin folder
+
+Will run either one of the following commands based on the compiler detected:
+**MSVC** (cl.exe):
+```bash
+cl /I include /link /LIBPATH:lib /Fe:build\my_program.exe src\*.cpp /std:c++20 /W4
+```
+
+**GCC** (g++):
+```bash
+g++ -I include -L lib -o build/my_program src/*.cpp -std=c++17 -Wall -Wextra -Wpedantic
+```
+
+**Clang** (clang++):
+```bash
+clang++ -I include -L lib -o build/my_program src/*.cpp -std=c++17 -Wall -Wextra -Wpedantic
+```
