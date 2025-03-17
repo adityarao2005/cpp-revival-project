@@ -10,4 +10,5 @@ The tools provided in this project are what I believe is what C++ has been missi
 These features are the following:
 
 - A package manager and project orchestrator tool. CMake sucks. Maven, Gradle, npm, and cargo are so much better. When I started getting into C++, creating a C++ project caused me with CMake caused me the most issues rather than developing and building the project.
-- An application (web) framework. C++ does not have a standard and lightweight one which implements the best of its features (C++ 20 and beyond).
+- An application (web) framework. C++ does not have a standard and lightweight one which implements the best of its features (C++ 20 and beyond). Although Boost is good, it does not give developers the same programmatic feel as when developing applications with Spring or ASP.NET Core or Express or Django.
+
