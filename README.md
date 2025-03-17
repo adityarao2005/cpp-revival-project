@@ -15,8 +15,8 @@ These features are the following:
 ## CPM - The C++ Package Manager
 
 Will support package management for C++. Will help with compilation, building, testing, packaging, and dependency management for the project's lifecycle.
-The commands would look like this:
 
+## Project Orchestration
 ### Initialize project command
 ```bash
 cpm init
@@ -112,6 +112,8 @@ cpm export
 Will provide a command line interface for exporting the project.
 If the project is a library then it will bundle the binaries and header files into a zip file to be sent over to some platform.
 If the project is an executable then it will bundle the binaries with the executable together.
+
+## Package Management
 
 ### Clean project command
 ```bash
