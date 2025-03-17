@@ -50,6 +50,7 @@ Creates a new project in the current directory.
     "testDir": ["./test"]
     "libDir": ["./lib"],
     "build": {
+      "warningLevel": "severe"
       "bin": ["./build/bin"],
       "macros": [],
     },
