@@ -115,18 +115,4 @@ If the project is an executable then it will bundle the binaries with the execut
 
 ## Package Management
 
-### Clean project command
-```bash
-cpm clean
-```
-
-Will delete all files in build folder and lib folder.
-
-### Install command
-```bash
-cpm install
-```
-
-Will fetch all the packages required for the code to run into the lib folder.
-
 **More commands coming**
