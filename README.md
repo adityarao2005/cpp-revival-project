@@ -42,6 +42,7 @@ Creates a new project in the current directory.
   "name": "",
   "version": "0.0.1",
   "project": {
+    "std": "c++20"
     "srcDir": ["./src"],
     "srcFiles": [],
     "includeDir": ["./include"],
