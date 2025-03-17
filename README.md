@@ -65,7 +65,7 @@ Creates a new project in the current directory.
 ```bash
 cpm build
 ```
-Builds the project and puts the output objects and binaries in the $project.build.bin folder
+Builds the project and puts the output objects and binaries in the $project.build.bin folder.
 
 Will run either one of the following commands based on the compiler detected:
 **MSVC** (cl.exe):
@@ -75,10 +75,40 @@ cl /I include /link /LIBPATH:lib /Fe:build\my_program.exe src\*.cpp /std:c++20 /
 
 **GCC** (g++):
 ```bash
-g++ -I include -L lib -o build/my_program src/*.cpp -std=c++17 -Wall -Wextra -Wpedantic
+g++ -I include -L lib -o build/my_program src/*.cpp -std=c++20 -Wall -Wextra -Wpedantic
 ```
 
 **Clang** (clang++):
 ```bash
-clang++ -I include -L lib -o build/my_program src/*.cpp -std=c++17 -Wall -Wextra -Wpedantic
+clang++ -I include -L lib -o build/my_program src/*.cpp -std=c++20 -Wall -Wextra -Wpedantic
 ```
+
+### Run project command
+**NOTE: This will only "run" the project if the type of the project is an 'executable'**
+
+```bash
+cpm run <cmd line arguments>
+```
+
+Faster way of running the project rather than doing:
+```bash
+cpm build
+$executable <cmd line arguments>
+```
+
+### Test project command
+```bash
+cpm test
+```
+
+Runs all test cases (unit tests, integration tests, and system tests).
+**NOTE: I have not decided how the testing for this should be implemented**
+
+### Export project command
+```bash
+cpm export
+```
+
+Will provide a command line interface for exporting the project.
+If the project is a library then it will bundle the binaries and header files into a zip file to be sent over to some platform.
+If the project is an executable then it will bundle the binaries with the executable together.
