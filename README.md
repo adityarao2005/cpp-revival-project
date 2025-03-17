@@ -50,7 +50,6 @@ Creates a new project in the current directory.
     "libDir": ["./lib"],
     "build": {
       "bin": ["./build/bin"],
-      "compiler": "gcc",
       "outputName": "a.out",
       "macros": [],
     },
