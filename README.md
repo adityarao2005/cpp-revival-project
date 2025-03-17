@@ -115,4 +115,16 @@ If the project is an executable then it will bundle the binaries with the execut
 
 ## Package Management
 
-**More commands coming**
+### Clean project command
+```bash
+cpm clean
+```
+
+Cleans up the dependencies and build files of the project
+
+### Install project command
+```bash
+cpm install
+```
+
+Fetches dependencies and compiles them into the lib folder for use.
