@@ -17,6 +17,7 @@ jobs:
 
       - name: Build project
         run: |
+          cd cpm
           mkdir build
           make build
       
