@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build project
-        run: cd cpm && mkdir build && make build
+        run: cd cpm && make build
       
       - name: Upload cpm executable
         uses: actions/upload-artifact@v4 

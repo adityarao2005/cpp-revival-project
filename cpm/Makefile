@@ -4,7 +4,8 @@ SRC = ./src/*.cpp
 OUTPUT = -o ./build/bin/cpm
 
 build: src/*.cpp include/*.hpp
+	mkdir -p ./build/bin
 	g++ $(CFLAGS) $(INCLUDE_DIR) $(OUTPUT) $(SRC)
 
 clean:
-	rm -rf ./build/bin/cpm
+	rm -rf ./build
