@@ -22,4 +22,4 @@ jobs:
         uses: actions/upload-artifact@v4 
         with:
           name: cpm executable
-          path: ./build/bin/cpm
+          path: ./cpm/build/bin/cpm
