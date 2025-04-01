@@ -10,22 +10,28 @@ void cpm::CmdLine::onCommand(const std::function<void(std::vector<std::string>)>
     }
 }
 
+void cpm::CmdLine::usagePart(const std::string &str)
+{
+
+    auto it = commands.find("usage");
+
+    if (it != commands.end())
+    {
+        it->second({});
+    }
+    else
+    {
+        // If no command is provided, display usage
+        std::cerr << str << std::endl;
+    }
+}
+
 int cpm::CmdLine::parse(int argc, char **argv)
 {
     // Check if there are any arguments
     if (argc < 2)
     {
-        auto it = commands.find("usage");
-
-        if (it != commands.end())
-        {
-            it->second({});
-        }
-        else
-        {
-            // If no command is provided, display usage
-            std::cerr << "No command provided. Use 'help' for usage information." << std::endl;
-        }
+        usagePart("No command provided. Use 'help' for usage information.");
 
         return 1; // No command provided
     }
@@ -43,12 +49,22 @@ int cpm::CmdLine::parse(int argc, char **argv)
         {
             args.push_back(argv[i]);
         }
-        it->second(args);
+
+        try
+        {
+            it->second(args);
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return 1; // Error occurred
+        }
 
         return 0; // Success
     }
     else
     {
+        usagePart("Usage did not work. Use 'help' for usage information.");
         return 1; // Command not found
     }
 }

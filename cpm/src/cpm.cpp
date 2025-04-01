@@ -7,47 +7,53 @@
 
 void cpm::init()
 {
-    throw std::runtime_error("init not implemented");
+    std::cout << "[init]" << std::endl;
+    // throw std::runtime_error("init not implemented");
 }
 
 void cpm::build(std::vector<std::string> args)
 {
-    throw std::runtime_error("build not implemented");
+    std::cout << "[build]" << std::endl;
 }
 
 void cpm::run(std::vector<std::string> args)
 {
-    throw std::runtime_error("run not implemented");
+    std::cout << "[run]" << std::endl;
 }
 
 void cpm::test(std::vector<std::string> args)
 {
-    throw std::runtime_error("test not implemented");
+    std::cout << "[test]" << std::endl;
 }
 
 void cpm::_export()
 {
-    throw std::runtime_error("export not implemented");
+    std::cout << "[export]" << std::endl;
 }
 
 void cpm::clean()
 {
-    throw std::runtime_error("clean not implemented");
+    std::cout << "[clean]" << std::endl;
 }
 
 void cpm::install()
 {
-    throw std::runtime_error("install not implemented");
+    std::cout << "[install]" << std::endl;
 }
 
 void cpm::help()
 {
-    throw std::runtime_error("help not implemented");
+    std::cout << "[help]" << std::endl;
 }
 
 void cpm::usage()
 {
-    throw std::runtime_error("usage not implemented");
+    std::cout << "Usage: cpm [command] [options]" << std::endl;
+}
+
+void version()
+{
+    std::cout << "CPM version 1.0.0" << std::endl;
 }
 
 int cpm::handle_cmdline(int argc, char **argv)
@@ -81,7 +87,7 @@ int cpm::handle_cmdline(int argc, char **argv)
              { cpm::usage(); },
              "usage", "u", "-u");
     PARSE_ON([](std::vector<std::string> args)
-             { std::cout << "CPM version 1.0.0" << std::endl; },
+             { version(); },
              "version", "v", "-v");
 
     return PARSE(argc, argv);

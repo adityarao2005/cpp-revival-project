@@ -1,0 +1,27 @@
+name: Build and Test CPM
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build project
+        run: |
+          mkdir build
+          make build
+      
+      - name: Upload cpm executable
+        uses: actions/upload-artifact@v4 
+        with:
+          name: cpm executable
+          path: cpm
