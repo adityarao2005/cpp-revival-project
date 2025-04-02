@@ -51,7 +51,7 @@ Creates a new project in the current directory.
     "libDir": ["./lib"],
     "build": {
       "warningLevel": "severe"
-      "bin": ["./build/bin"],
+      "bin": "./build/bin",
       "macros": [],
     },
     "type": "executable"
