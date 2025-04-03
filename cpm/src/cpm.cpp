@@ -4,41 +4,100 @@
 #include <string>
 #include <filesystem>
 #include "cmdline.hpp"
+#include "project.hpp"
 
+// Singleton object of the project file
+std::unique_ptr<cpm::project::ProjectFile> projectFile = nullptr;
+std::optional<std::pair<std::filesystem::path, cpm::project::file::ProjectFileType>> projectFilePath = std::nullopt;
+
+// TODO: Implement this function
 void cpm::init()
 {
-    std::cout << "[init]" << std::endl;
-    // throw std::runtime_error("init not implemented");
+    std::cout << "Project initialization beginning" << std::endl;
+
+    throw std::runtime_error("not implemented");
 }
 
+/// @brief Initializes the project variables.
+/// @note This function is called when the project is initialized.
+/// @throws std::runtime_error if the project file is not found or cannot be read.
+void initializeProjectVariables()
+{
+    // Check if the project file exists
+    projectFilePath = cpm::project::file::identifyProjectFile();
+    if (projectFilePath)
+    {
+        // Read the project file
+        auto projectFileData = cpm::project::file::readProjectFile(projectFilePath->first, projectFilePath->second);
+        if (projectFileData)
+        {
+            // Set the project file
+            projectFile = std::move(projectFileData->first);
+            std::cout << "Project file loaded successfully" << std::endl;
+        }
+        else
+        {
+            throw std::runtime_error("Failed to read project file");
+        }
+    }
+    else
+    {
+        throw std::runtime_error("Project file not found");
+    }
+}
+
+// TODO: Implement this function
 void cpm::build(std::vector<std::string> args)
 {
     std::cout << "[build]" << std::endl;
+    initializeProjectVariables();
+
+    throw std::runtime_error("not implemented");
 }
 
+// TODO: Implement this function
 void cpm::run(std::vector<std::string> args)
 {
     std::cout << "[run]" << std::endl;
+    initializeProjectVariables();
+
+    throw std::runtime_error("not implemented");
 }
 
+// TODO: Implement this function
 void cpm::test(std::vector<std::string> args)
 {
     std::cout << "[test]" << std::endl;
+    initializeProjectVariables();
+
+    throw std::runtime_error("not implemented");
 }
 
+// TODO: Implement this function
 void cpm::_export()
 {
     std::cout << "[export]" << std::endl;
+    initializeProjectVariables();
+
+    throw std::runtime_error("not implemented");
 }
 
+// TODO: Implement this function
 void cpm::clean()
 {
     std::cout << "[clean]" << std::endl;
+    initializeProjectVariables();
+
+    throw std::runtime_error("not implemented");
 }
 
+// TODO: Implement this function
 void cpm::install()
 {
     std::cout << "[install]" << std::endl;
+    initializeProjectVariables();
+
+    throw std::runtime_error("not implemented");
 }
 
 void cpm::help()

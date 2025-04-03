@@ -4,6 +4,7 @@
 #include <optional>
 #include <stdexcept>
 #include <memory>
+#include <filesystem>
 
 namespace cpm
 {
@@ -187,7 +188,7 @@ namespace cpm
 		};
 
 		/// @brief Build is a struct that represents the build configuration.
-		struct Build
+		struct BuildConfig
 		{
 			/// @brief The build directory.
 			std::string binDir;
@@ -239,7 +240,7 @@ namespace cpm
 			/// @brief the source directories
 			std::vector<std::string> srcDirs;
 			/// @brief the build configuration
-			std::unique_ptr<Build> build;
+			std::unique_ptr<BuildConfig> build;
 			/// @brief the include directories
 			std::vector<std::string> includeDirs;
 			/// @brief the include files
@@ -267,5 +268,33 @@ namespace cpm
 			std::vector<std::unique_ptr<dependency::Dependency>> dependencies;
 		};
 
+		namespace file
+		{
+
+			enum class ProjectFileType
+			{
+				/// @brief JSON project file.
+				JSON,
+				/// @brief YAML project file.
+				YAML,
+				/// @brief XML project file.
+				XML,
+			};
+
+			/// @brief Identifies the project file path and type.
+			/// @return an optional of both
+			std::optional<std::pair<std::filesystem::path, ProjectFileType>> identifyProjectFile();
+			/// @brief Reads the project file from the given path.
+			/// @param projectPath the project path of the project file.
+			/// @param type the type of the project file.
+			/// @return A pair of the project file and the type of the project file.
+			std::optional<std::pair<std::unique_ptr<ProjectFile>, ProjectFileType>> readProjectFile(std::filesystem::path projectPath, ProjectFileType type);
+
+			/// @brief Writes the project file to the given path.
+			/// @param projectPath the project path of the project file.
+			/// @param type the type of the project file.
+			/// @param projectFile the project file to write.
+			void writeProjectFile(std::filesystem::path projectPath, ProjectFileType type, std::unique_ptr<ProjectFile> projectFile);
+		};
 	}
 }
