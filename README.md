@@ -53,6 +53,7 @@ Creates a new project in the current directory.
       "warningLevel": "severe"
       "bin": "./build/bin",
       "macros": [],
+      "target": [ "current" ]
     },
     "type": "executable"
   },
@@ -110,6 +111,21 @@ cpm export
 ```
 
 Will provide a command line interface for exporting the project.
+Will build the project in all the provided target machines and architectures in the project.json file.
+For example:
+If the target is the following: target: [ "windows:x86", "windows:x64", "linux:arm64" ]
+Then the file tree will be generated after running export:
+```
+ + build
+ +-- bin/
+ +-- target/
+ |    +-- windows
+ |    |    +-- x86
+ |    |    +-- x64
+ |    +-- linux/arm64
+```
+Target can be 'OS:architecture', 'current', or 'all'. By default and for simplicity, it is 'current'
+A feature to push these binaries to a platform will be added soon.
 If the project is a library then it will bundle the binaries and header files into a zip file to be sent over to some platform.
 If the project is an executable then it will bundle the binaries with the executable together.
 
