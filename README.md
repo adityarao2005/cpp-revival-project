@@ -12,14 +12,14 @@ These features are the following:
 - A package manager and project orchestrator tool. CMake sucks. Maven, Gradle, npm, and cargo are so much better. When I started getting into C++, creating a C++ project caused me with CMake caused me the most issues rather than developing and building the project.
 - An application (web) framework. C++ does not have a standard and lightweight one which implements the best of its features (C++ 20 and beyond). Although Boost is good, it does not give developers the same programmatic feel as when developing applications with Spring or ASP.NET Core or Express or Django.
 
-## CPM - The C++ Package Manager
+## craft - The C++ Package Manager
 
 Will support package management for C++. Will help with compilation, building, testing, packaging, and dependency management for the project's lifecycle.
 
 ## Project Orchestration
 ### Initialize project command
 ```bash
-cpm init
+craft init
 ```
 Creates a new project in the current directory.
 **File structure**
@@ -64,7 +64,7 @@ Creates a new project in the current directory.
 
 ### Build project command
 ```bash
-cpm build <flags>
+craft build <flags>
 ```
 Builds the project and puts the output objects and binaries in the $project.build.bin folder.
 
@@ -88,18 +88,18 @@ clang++ -I include -L lib -o build/my_program src/*.cpp -std=c++20 -Wall -Wextra
 **NOTE: This will only "run" the project if the type of the project is an 'executable'**
 
 ```bash
-cpm run <cmd line arguments>
+craft run <cmd line arguments>
 ```
 
 Faster way of running the project rather than doing:
 ```bash
-cpm build
+craft build
 $executable <cmd line arguments>
 ```
 
 ### Test project command
 ```bash
-cpm test
+craft test
 ```
 
 Runs all test cases (unit tests, integration tests, and system tests).
@@ -107,7 +107,7 @@ Runs all test cases (unit tests, integration tests, and system tests).
 
 ### Export project command
 ```bash
-cpm export
+craft export
 ```
 
 Will provide a command line interface for exporting the project.
@@ -133,14 +133,14 @@ If the project is an executable then it will bundle the binaries with the execut
 
 ### Clean project command
 ```bash
-cpm clean
+craft clean
 ```
 
 Cleans up the dependencies and build files of the project
 
 ### Install project command
 ```bash
-cpm install
+craft install
 ```
 
 Fetches dependencies and compiles them into the lib folder for use.
