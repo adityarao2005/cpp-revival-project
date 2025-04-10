@@ -4,7 +4,7 @@
 #include <vector>
 #include <unordered_map>
 
-namespace cpm
+namespace craft
 {
 
     class CmdLine
@@ -21,6 +21,6 @@ namespace cpm
 
 }
 
-#define CREATE_COMMAND_LINE cpm::CmdLine cmdline
+#define CREATE_COMMAND_LINE craft::CmdLine cmdline
 #define PARSE_ON(f, ...) cmdline.onCommand(f, {__VA_ARGS__})
 #define PARSE(argc, argv) cmdline.parse(argc, argv)

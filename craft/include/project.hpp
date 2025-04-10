@@ -6,7 +6,7 @@
 #include <memory>
 #include <filesystem>
 
-namespace cpm
+namespace craft
 {
 	/// @brief The project details of the project.
 	namespace project
@@ -33,10 +33,7 @@ namespace cpm
 					std::string packageName;
 
 					/// @brief Extracts the library from the source. Uses the vcpkg tool to install the package.
-					void extractLibrary() override
-					{
-						throw std::runtime_error("VcpkgSource::extractLibrary not implemented");
-					}
+					void extractLibrary() override;
 				};
 
 				/// @brief GitSource is a class that represents a git dependency source.
@@ -47,10 +44,7 @@ namespace cpm
 					std::string cloneUrl;
 
 					/// @brief Extracts the library from the source. Uses git to clone the repository.
-					void extractLibrary() override
-					{
-						throw std::runtime_error("GitSource::extractLibrary not implemented");
-					}
+					void extractLibrary() override;
 				};
 
 				/// @brief FolderSource is a class that represents a folder dependency source.
@@ -61,10 +55,7 @@ namespace cpm
 					std::string path;
 
 					/// @brief Extracts the library from the source. Copies the library contents into the lib folder.
-					void extractLibrary() override
-					{
-						throw std::runtime_error("FolderSource::extractLibrary not implemented");
-					}
+					void extractLibrary() override;
 				};
 
 				/// @brief ZipSource is a class that represents a zip file dependency source.
@@ -75,10 +66,7 @@ namespace cpm
 					std::string file;
 
 					/// @brief Extracts the library from the source. Extracts the zip library into the lib folder.
-					void extractLibrary() override
-					{
-						throw std::runtime_error("ZipSource::extractLibrary not implemented");
-					}
+					void extractLibrary() override;
 				};
 
 				/// @brief SystemSource is a class that represents a system dependency source.
@@ -91,10 +79,7 @@ namespace cpm
 					/// @brief Extracts the library from the source. Does nothing as the library is already installed in the system.
 					/// @note This is a placeholder implementation. In a real-world scenario, this would check if the library is installed.
 					/// and if not, it would install it somehow.
-					void extractLibrary() override
-					{
-						throw std::runtime_error("SystemSource::extractLibrary not implemented");
-					}
+					void extractLibrary() override;
 				};
 			}
 
@@ -119,10 +104,7 @@ namespace cpm
 			public:
 				/// @brief Builds the dependency.
 				/// @note This does nothing as header-only dependencies do not require building.
-				void build() override
-				{
-					throw std::runtime_error("HeaderOnlyDependency::build not implemented");
-				}
+				void build() override;
 			};
 
 			/// @brief LibraryType is an enum class that represents the type of library.
@@ -146,10 +128,7 @@ namespace cpm
 
 				/// @brief Builds the dependency.
 				/// @note This does nothing as the library dependencies do not require building as they are already built.
-				void build() override
-				{
-					throw std::runtime_error("LibraryDependency::build not implemented");
-				}
+				void build() override;
 			};
 
 			/// @brief SourceCodeDependency is a class that represents a source code dependency.
@@ -165,10 +144,7 @@ namespace cpm
 
 				/// @brief Builds the dependency.
 				/// @note This uses the build command to build the source code.
-				void build() override
-				{
-					throw std::runtime_error("SourceCodeDependency::build not implemented");
-				}
+				void build() override;
 			};
 		}
 

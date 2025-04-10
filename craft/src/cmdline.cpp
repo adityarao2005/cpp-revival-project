@@ -1,7 +1,7 @@
 #include "cmdline.hpp"
 #include <iostream>
 
-void cpm::CmdLine::onCommand(const std::function<void(std::vector<std::string>)> &callback, std::vector<std::string> command)
+void craft::CmdLine::onCommand(const std::function<void(std::vector<std::string>)> &callback, std::vector<std::string> command)
 {
     // Store the command and its associated callback
     for (const auto &cmd : command)
@@ -10,7 +10,7 @@ void cpm::CmdLine::onCommand(const std::function<void(std::vector<std::string>)>
     }
 }
 
-void cpm::CmdLine::usagePart(const std::string &str)
+void craft::CmdLine::usagePart(const std::string &str)
 {
 
     auto it = commands.find("usage");
@@ -26,7 +26,7 @@ void cpm::CmdLine::usagePart(const std::string &str)
     }
 }
 
-int cpm::CmdLine::parse(int argc, char **argv)
+int craft::CmdLine::parse(int argc, char **argv)
 {
     // Check if there are any arguments
     if (argc < 2)

@@ -1,4 +1,4 @@
-#include "cpm.hpp"
+#include "craft.hpp"
 #include <stdexcept>
 #include <iostream>
 #include <string>
@@ -7,11 +7,11 @@
 #include "project.hpp"
 
 // Singleton object of the project file
-std::unique_ptr<cpm::project::ProjectFile> projectFile = nullptr;
-std::optional<std::pair<std::filesystem::path, cpm::project::file::ProjectFileType>> projectFilePath = std::nullopt;
+std::unique_ptr<craft::project::ProjectFile> projectFile = nullptr;
+std::optional<std::pair<std::filesystem::path, craft::project::file::ProjectFileType>> projectFilePath = std::nullopt;
 
 // TODO: Implement this function
-void cpm::init()
+void craft::init()
 {
     std::cout << "Project initialization beginning" << std::endl;
 
@@ -24,11 +24,11 @@ void cpm::init()
 void initializeProjectVariables()
 {
     // Check if the project file exists
-    projectFilePath = cpm::project::file::identifyProjectFile();
+    projectFilePath = craft::project::file::identifyProjectFile();
     if (projectFilePath)
     {
         // Read the project file
-        auto projectFileData = cpm::project::file::readProjectFile(projectFilePath->first, projectFilePath->second);
+        auto projectFileData = craft::project::file::readProjectFile(projectFilePath->first, projectFilePath->second);
         if (projectFileData)
         {
             // Set the project file
@@ -47,7 +47,7 @@ void initializeProjectVariables()
 }
 
 // TODO: Implement this function
-void cpm::build(std::vector<std::string> args)
+void craft::build(std::vector<std::string> args)
 {
     std::cout << "[build]" << std::endl;
     initializeProjectVariables();
@@ -56,7 +56,7 @@ void cpm::build(std::vector<std::string> args)
 }
 
 // TODO: Implement this function
-void cpm::run(std::vector<std::string> args)
+void craft::run(std::vector<std::string> args)
 {
     std::cout << "[run]" << std::endl;
     initializeProjectVariables();
@@ -65,7 +65,7 @@ void cpm::run(std::vector<std::string> args)
 }
 
 // TODO: Implement this function
-void cpm::test(std::vector<std::string> args)
+void craft::test(std::vector<std::string> args)
 {
     std::cout << "[test]" << std::endl;
     initializeProjectVariables();
@@ -74,7 +74,7 @@ void cpm::test(std::vector<std::string> args)
 }
 
 // TODO: Implement this function
-void cpm::_export()
+void craft::_export()
 {
     std::cout << "[export]" << std::endl;
     initializeProjectVariables();
@@ -83,7 +83,7 @@ void cpm::_export()
 }
 
 // TODO: Implement this function
-void cpm::clean()
+void craft::clean()
 {
     std::cout << "[clean]" << std::endl;
     initializeProjectVariables();
@@ -92,7 +92,7 @@ void cpm::clean()
 }
 
 // TODO: Implement this function
-void cpm::install()
+void craft::install()
 {
     std::cout << "[install]" << std::endl;
     initializeProjectVariables();
@@ -100,50 +100,50 @@ void cpm::install()
     throw std::runtime_error("not implemented");
 }
 
-void cpm::help()
+void craft::help()
 {
     std::cout << "[help]" << std::endl;
 }
 
-void cpm::usage()
+void craft::usage()
 {
-    std::cout << "Usage: cpm [command] [options]" << std::endl;
+    std::cout << "Usage: craft [command] [options]" << std::endl;
 }
 
 void version()
 {
-    std::cout << "CPM version 1.0.0" << std::endl;
+    std::cout << "craft version 1.0.0" << std::endl;
 }
 
-int cpm::handle_cmdline(int argc, char **argv)
+int craft::handle_cmdline(int argc, char **argv)
 {
     CREATE_COMMAND_LINE;
     PARSE_ON([](std::vector<std::string> args)
-             { cpm::init(); },
+             { craft::init(); },
              "init");
     PARSE_ON([](std::vector<std::string> args)
-             { cpm::build(args); },
+             { craft::build(args); },
              "build", "b", "-b");
     PARSE_ON([](std::vector<std::string> args)
-             { cpm::run(args); },
+             { craft::run(args); },
              "run", "r", "-r");
     PARSE_ON([](std::vector<std::string> args)
-             { cpm::test(args); },
+             { craft::test(args); },
              "test", "t", "-t");
     PARSE_ON([](std::vector<std::string> args)
-             { cpm::_export(); },
+             { craft::_export(); },
              "export", "e", "-e");
     PARSE_ON([](std::vector<std::string> args)
-             { cpm::clean(); },
+             { craft::clean(); },
              "clean", "c", "-c");
     PARSE_ON([](std::vector<std::string> args)
-             { cpm::install(); },
+             { craft::install(); },
              "install", "i", "-i");
     PARSE_ON([](std::vector<std::string> args)
-             { cpm::help(); },
+             { craft::help(); },
              "help", "h", "-h");
     PARSE_ON([](std::vector<std::string> args)
-             { cpm::usage(); },
+             { craft::usage(); },
              "usage", "u", "-u");
     PARSE_ON([](std::vector<std::string> args)
              { version(); },

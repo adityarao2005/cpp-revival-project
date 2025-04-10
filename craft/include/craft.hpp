@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-namespace cpm
+namespace craft
 {
 
     /// @brief Initialize the C++ project in the current directory.
