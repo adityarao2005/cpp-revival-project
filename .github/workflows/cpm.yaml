@@ -14,12 +14,3 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Build project
-        run: cd cpm && make build
-      
-      - name: Upload cpm executable
-        uses: actions/upload-artifact@v4 
-        with:
-          name: cpm executable
-          path: ./cpm/build/bin/cpm
