@@ -3,10 +3,13 @@ use std::fs;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProjectFile {
     pub name: String,
     pub version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<String>,
     pub dependencies: Vec<dependency::Dependency>,
     pub project: Project,
@@ -32,42 +35,35 @@ pub mod dependency {
 
     // The Dependency trait is used to define the common interface for all dependencies.
     #[derive(Debug, Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
     pub enum Dependency {
-        HeaderOnly(HeaderOnlyDependency),
-        Library(LibraryDependency),
-        SourceCode(SourceCodeDependency),
+        HeaderOnly {
+            include_path: String,
+            dependency_source: source::DependencySource,
+        },
+        Library {
+            lib_path: String,
+            lib_type: LibraryType,
+            include_path: String,
+            dependency_source: source::DependencySource,
+        },
+        SourceCode {
+            src_path: String,
+            build_command: String,
+            lib_output: String,
+            include_path: String,
+            dependency_source: source::DependencySource,
+        },
     }
 
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct HeaderOnlyDependency {
-        pub include_path: String,
-        pub dependency_source: source::DependencySource,
-    }
-
-    #[derive(Debug, Serialize, Deserialize)]
-    pub struct LibraryDependency {
-        pub lib_path: String,
-        pub lib_type: LibraryType,
-        pub include_path: String,
-        pub dependency_source: source::DependencySource,
-    }
-
-    #[derive(Debug, Serialize, Deserialize)]
-    pub struct SourceCodeDependency {
-        pub src_path: String,
-        pub build_command: String,
-        pub lib_output: String,
-        pub include_path: String,
-        pub dependency_source: source::DependencySource,
-    }
-
-    #[derive(Debug, Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
     pub enum LibraryType {
         Static,
         Shared,
     }
 
-    fn build_source_code(_src: &SourceCodeDependency) {
+    fn build_source_code(_src_path: &String, _build_command: &String, _lib_output: &String) {
         println!("Building source code dependency");
 
         // Here you would run the build command, for example:
@@ -78,32 +74,43 @@ pub mod dependency {
     impl Dependency {
         pub fn build(&self) {
             match self {
-                Dependency::HeaderOnly(..) => {
+                Dependency::HeaderOnly { .. } => {
                     println!("Building header-only dependency");
                 }
-                Dependency::Library(dependency) => {
-                    println!("Building library dependency at {}", dependency.lib_path);
+                Dependency::Library { lib_path, .. } => {
+                    println!("Building library dependency at {}", lib_path);
                 }
-                Dependency::SourceCode(dependency) => {
-                    println!("Building source code dependency at {}", dependency.src_path);
-                    build_source_code(dependency);
+                Dependency::SourceCode {
+                    src_path,
+                    lib_output,
+                    build_command,
+                    ..
+                } => {
+                    println!("Building source code dependency at {}", src_path);
+                    build_source_code(src_path, build_command, lib_output);
                 }
             }
         }
 
         pub fn include_path(&self) -> Option<&String> {
             return match self {
-                Dependency::HeaderOnly(dependency) => Some(&(dependency.include_path)),
-                Dependency::Library(dependency) => Some(&(dependency.include_path)),
-                Dependency::SourceCode(dependency) => Some(&(dependency.include_path)),
+                Dependency::HeaderOnly { include_path, .. } => Some(&include_path),
+                Dependency::Library { include_path, .. } => Some(&include_path),
+                Dependency::SourceCode { include_path, .. } => Some(&include_path),
             };
         }
 
         pub fn dependency_source(&self) -> &source::DependencySource {
             return match self {
-                Dependency::HeaderOnly(dependency) => &(dependency.dependency_source),
-                Dependency::Library(dependency) => &(dependency.dependency_source),
-                Dependency::SourceCode(dependency) => &(dependency.dependency_source),
+                Dependency::HeaderOnly {
+                    dependency_source, ..
+                } => &(dependency_source),
+                Dependency::Library {
+                    dependency_source, ..
+                } => &(dependency_source),
+                Dependency::SourceCode {
+                    dependency_source, ..
+                } => &(dependency_source),
             };
         }
     }
@@ -114,14 +121,18 @@ pub mod dependency {
         use serde::{Deserialize, Serialize};
 
         #[derive(Debug, Serialize, Deserialize)]
+        #[serde(rename_all = "camelCase")]
         pub enum DependencySource {
             GitSource {
                 repo_url: String,
+                #[serde(skip_serializing_if = "Option::is_none")]
                 branch: Option<String>,
+                #[serde(skip_serializing_if = "Option::is_none")]
                 commit: Option<String>,
             },
             VcpkgSource {
                 package_name: String,
+                #[serde(skip_serializing_if = "Option::is_none")]
                 version: Option<String>,
             },
             FolderSource {
@@ -142,6 +153,7 @@ pub mod dependency {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Project {
     pub test_dirs: Vec<String>,
     pub lib_dirs: Vec<String>,
@@ -155,6 +167,7 @@ pub struct Project {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BuildConfig {
     pub build_dir: String,
     pub macros: Vec<String>,

@@ -24,7 +24,12 @@ fn main() {
 
     match args.command {
         Commands::Init => {
-            craft::parse::init().unwrap();
+            craft::parse::init(craft::parse::InitArgs {
+                project_name: None,
+                project_type: None,
+                cpp_version: None,
+            })
+            .unwrap();
         }
         Commands::Build => {
             craft::parse::build();

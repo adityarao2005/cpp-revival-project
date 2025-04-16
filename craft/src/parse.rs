@@ -8,7 +8,7 @@ type Result<T> = std::result::Result<T, std::io::Error>;
 mod init {
     type Result<T> = std::result::Result<T, std::io::Error>;
     use crate::project;
-    use std::io;
+    use std::{fs, io};
 
     /// Reads the project name from the command line
     pub fn read_project_name() -> Result<String> {
@@ -57,12 +57,38 @@ mod init {
         };
         Ok(cpp_version)
     }
+
+    pub fn create_files(project_name: &String) -> Result<()> {
+        fs::create_dir(project_name)?;
+        fs::create_dir(format!("./{}/src", project_name))?;
+        fs::write(
+            format!("./{}/src/main.cpp", project_name),
+            "#include <iostream>
+
+int main() {
+    std::cout << \"Hello, World!\" << std::endl;
+    return 0;
+}",
+        )?;
+        fs::create_dir(format!("./{}/test", project_name))?;
+        fs::create_dir(format!("./{}/build", project_name))?;
+        fs::create_dir(format!("./{}/include", project_name))?;
+        fs::create_dir(format!("./{}/lib", project_name))?;
+
+        Ok(())
+    }
+}
+
+pub struct InitArgs {
+    pub project_name: Option<String>,
+    pub project_type: Option<project::ProjectType>,
+    pub cpp_version: Option<project::CPPVersion>,
 }
 
 /// Precondition: Current Directory needs to be empty
 /// Task: Create a new project file and all the directories underneath it for C++ project development
 /// Postcondition: Creates the project file and all the directories underneath it
-pub fn init() -> Result<()> {
+pub fn init(args: InitArgs) -> Result<()> {
     // Get the current path, and check if it's empty
     let current_path = env::current_dir()?;
     let read_dir = fs::read_dir(current_path)?;
@@ -78,40 +104,31 @@ pub fn init() -> Result<()> {
 
     println!("Initializing a new project...");
 
+    let InitArgs {
+        project_name,
+        project_type,
+        cpp_version,
+    } = args;
+
     // First ask user the type of project they want to create
-    let project_name = init::read_project_name()?;
-    let project_type = init::read_project_type()?;
-    let cpp_version = init::read_cpp_version()?;
+    let project_name = match project_name {
+        Some(name) => name,
+        None => init::read_project_name()?,
+    };
 
-    /*
-    - (current directory)
-    +----- src/ (created)
-    +----- test/ (created)
-    +----- include/ (created)
-    +----- build/ (created)
-    +----- lib/ (created)
-    +----- project.json
-    */
-    fs::create_dir("./src")?;
-    fs::write(
-        "./src/main.cpp",
-        "
-#include <iostream>
+    let project_type = match project_type {
+        Some(ptype) => ptype,
+        None => init::read_project_type()?,
+    };
 
-int main() {
-    std::cout << \"Hello, World!\" << std::endl;
-    return 0;
-}
-    ",
-    )?;
-    fs::create_dir(project_name.clone())?;
-    fs::create_dir(format!("./{}/test", project_name.clone()))?;
-    fs::create_dir(format!("./{}/src", project_name.clone()))?;
-    fs::create_dir(format!("./{}/include", project_name.clone()))?;
-    fs::create_dir(format!("./{}/lib", project_name.clone()))?;
+    let cpp_version = match cpp_version {
+        Some(version) => version,
+        None => init::read_cpp_version()?,
+    };
+
+    init::create_files(&project_name)?;
 
     // Create a new project file
-    // TODO: complete the rest... series of prompts to get the project name, version, etc.
     let project_file = project::ProjectFile {
         dependencies: vec![],
         description: None,
@@ -137,7 +154,7 @@ int main() {
 
     project::write_project_file(&project_file)?;
 
-    println!("Project file created successfully.");
+    println!("Project created successfully.");
 
     Ok(())
 }
