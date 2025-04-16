@@ -33,7 +33,7 @@ jobs:
       - name: Upload craft executable
         uses: actions/upload-artifact@v4 
         with:
-          name: craft linux executable
+          name: craft linux ${{ matrix.toolchain }} executable
           path: ./craft/target/release/craft
 
   build_and_test_windows:
@@ -60,7 +60,7 @@ jobs:
       - name: Upload craft executable
         uses: actions/upload-artifact@v4
         with:
-            name: craft windows executable
+            name: craft windows ${{ matrix.toolchain }} executable
             path: ./craft/target/release/craft.exe
 
 
