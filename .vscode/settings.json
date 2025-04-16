@@ -70,5 +70,6 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "/home/aditya/Projects/cpp-revival-project/webcraft"
 }
