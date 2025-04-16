@@ -2,7 +2,7 @@
 C++ Revival project. To revive C++ programming in a safe, scalable, and feature-friendly way.
 
 ## Introduction
-C++ has come a long way from being the unsafe object-oriented version of C. With languages like Java, C#, Python, and JavaScript in the view for much of the market in programming, many people have forgotten the power that C++ has and the programs that you can build in C++. The goal of this project is to provide a framework which will help power up C++ such that it will be as programmatically friendly, safe, and scalable as the languages most commonly used today.
+C++ has come a long way from being the unsafe object-oriented version of C that people used to know. With languages like Java, C#, Python, and JavaScript in the view for much of the market in programming, many people have forgotten the power that C++ has and the programs that you can build in C++. The goal of this project is to provide a framework which will help power up C++ such that it will be as programmatically friendly, safe, and scalable as the languages most commonly used today.
 
 ## Tools Provided
 
