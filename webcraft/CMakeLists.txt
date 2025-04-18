@@ -13,3 +13,4 @@ add_executable(WebCraft ${WebCraft_SOURCES})
 
 target_link_libraries(WebCraft PRIVATE fmt::fmt)
 target_include_directories(WebCraft PRIVATE ${CPP_ASYNC_INCLUDE_DIRS})
+target_include_directories(WebCraft PRIVATE include)
