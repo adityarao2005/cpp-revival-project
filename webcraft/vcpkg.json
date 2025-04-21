@@ -1,6 +1,16 @@
 {
+  "name": "webcraft",
+  "version": "0.1.0",
   "dependencies": [
+    "cpp-async",
     "fmt",
-    "cpp-async"
+    {
+      "name": "liburing",
+      "platform": "linux"
+    },
+    {
+      "name": "winsock2",
+      "platform": "windows"
+    }
   ]
 }
