@@ -11,7 +11,7 @@
 off_t get_file_size(int fd)
 {
     struct stat finfo;
-    fstat(fileno(fp), &finfo);
+    fstat(fd, &finfo);
     return finfo.st_size;
 }
 
@@ -20,7 +20,7 @@ class ReadOnlyFile
 public:
     ReadOnlyFile(const std::string &file_path) : path_{file_path}
     {
-        fd_ = open(file_path.c_str(), "r");
+        fd_ = open(file_path.c_str(), O_RDONLY);
         if (!fd_)
         {
             throw std::runtime_error("Fail to open file");
@@ -113,9 +113,12 @@ public:
 async::task<std::string> read_file_async(IOUring &io_uring, const std::string &filename)
 {
     // Simulate an asynchronous file read operation
+    fmt::print("Reading file: {}\n", filename);
     ReadOnlyFile file(filename);
     auto fd = file.fd();
     auto size = file.size();
+
+    fmt::print("File size: {}\n", size);
 
     std::vector<char> buffer(size);
     struct io_uring_sqe *sqe = io_uring_get_sqe(io_uring.get());
@@ -145,6 +148,8 @@ void run_app()
 
     // Create the IOUring instance with a queue size of 256
     IOUring io_uring(256);
+
+    fmt::println("IOUring initialized");
 
     // Call the coroutine to read entries and eagerly run it - the rest of the coroutine will be completed in the IO loop
     async::event_signal signal;
