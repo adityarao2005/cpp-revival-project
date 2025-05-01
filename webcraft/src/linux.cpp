@@ -7,76 +7,12 @@
 #include <cstdio>
 #include <liburing.h>
 #include <vector>
-#include <functional>
-
-class IOUring
-{
-public:
-    explicit IOUring(size_t queue_size)
-    {
-        if (auto s = io_uring_queue_init(queue_size, &ring_, 0); s < 0)
-        {
-            throw std::runtime_error("error initializing io_uring: " + std::to_string(s));
-        }
-    }
-
-    IOUring(const IOUring &) = delete;
-    IOUring &operator=(const IOUring &) = delete;
-    IOUring(IOUring &&) = delete;
-    IOUring &operator=(IOUring &&) = delete;
-
-    ~IOUring() { io_uring_queue_exit(&ring_); }
-
-    struct io_uring *get()
-    {
-        return &ring_;
-    }
-
-private:
-    struct io_uring ring_;
-};
-
-struct IOEvent
-{
-    std::function<void(int)> callback;
-};
-
-struct IOAwaitable
-{
-private:
-    struct io_uring_sqe *sqe;
-    int result;
-
-public:
-    IOAwaitable(struct io_uring_sqe *sqe)
-        : sqe(sqe) {}
-
-    bool await_ready() { return false; }
-
-    void await_suspend(std::coroutine_handle<> handle)
-    {
-        auto event = new IOEvent{[&](int res)
-                                 {
-                                     result = res;
-                                     handle.resume();
-                                 }};
-        io_uring_sqe_set_data(sqe, event);
-    }
-
-    int await_resume()
-    {
-        return result;
-    }
-};
 
 off_t get_file_size(int fd)
 {
-    struct stat st;
-    if (fstat(fd, &st) < 0)
-    {
-        return -1;
-    }
-    return st.st_size;
+    struct stat finfo;
+    fstat(fileno(fp), &finfo);
+    return finfo.st_size;
 }
 
 class ReadOnlyFile
@@ -84,8 +20,8 @@ class ReadOnlyFile
 public:
     ReadOnlyFile(const std::string &file_path) : path_{file_path}
     {
-        fd_ = open(file_path.c_str(), O_RDONLY);
-        if (fd_ < 0)
+        fd_ = open(file_path.c_str(), "r");
+        if (!fd_)
         {
             throw std::runtime_error("Fail to open file");
         }
@@ -119,6 +55,61 @@ private:
     off_t size_;
 };
 
+class IOUring
+{
+public:
+    explicit IOUring(size_t queue_size)
+    {
+        if (auto s = io_uring_queue_init(queue_size, &ring_, 0); s < 0)
+        {
+            throw std::runtime_error("error initializing io_uring: " + std::to_string(s));
+        }
+    }
+
+    IOUring(const IOUring &) = delete;
+    IOUring &operator=(const IOUring &) = delete;
+    IOUring(IOUring &&) = delete;
+    IOUring &operator=(IOUring &&) = delete;
+
+    ~IOUring() { io_uring_queue_exit(&ring_); }
+
+    struct io_uring *get()
+    {
+        return &ring_;
+    }
+
+private:
+    struct io_uring ring_;
+};
+
+struct IOAwaitable
+{
+private:
+    struct io_uring_sqe *sqe;
+    int result;
+
+public:
+    IOAwaitable(struct io_uring_sqe *sqe)
+        : sqe(sqe) {}
+
+    bool await_ready() { return false; }
+
+    void await_suspend(std::coroutine_handle<> handle)
+    {
+        auto event = new IOEvent{[&](int res)
+                                 {
+                                     result = res;
+                                     handle.resume();
+                                 }};
+        io_uring_sqe_set_data(sqe, event);
+    }
+
+    int await_resume()
+    {
+        return result;
+    }
+};
+
 async::task<std::string> read_file_async(IOUring &io_uring, const std::string &filename)
 {
     // Simulate an asynchronous file read operation
@@ -146,24 +137,6 @@ async::task<void> read_entries(IOUring &io_uring)
 
     fmt::println("Read from file: {}\n", str);
     co_return;
-}
-
-struct fire_and_forget
-{
-    struct promise_type
-    {
-        void return_void() {}
-        std::suspend_never initial_suspend() { return {}; }
-        std::suspend_never final_suspend() noexcept { return {}; }
-        fire_and_forget get_return_object() { return {}; }
-        void unhandled_exception() { std::terminate(); }
-    };
-};
-
-fire_and_forget run_task_on_io(async::task<void> task, async::event_signal &signal)
-{
-    co_await task;
-    signal.set();
 }
 
 void run_app()

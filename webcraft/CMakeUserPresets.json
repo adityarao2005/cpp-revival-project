@@ -2,10 +2,17 @@
     "version": 2,
     "configurePresets": [
         {
-            "name": "default",
-            "inherits": "vcpkg",
+            "name": "default - linux",
+            "inherits": "vcpkg - linux",
             "environment": {
                 "VCPKG_ROOT": "~/vcpkg"
+            }
+        },
+        {
+            "name": "default - windows",
+            "inherits": "vcpkg - windows",
+            "environment": {
+                "VCPKG_ROOT": "C:/users/adity/vcpkg"
             }
         }
     ]
