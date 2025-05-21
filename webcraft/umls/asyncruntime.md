@@ -5,28 +5,18 @@
 This is the general outline of a generic awaitable class. This will be used to template other kinds of awaitables in the framework like IO based awaitables, timer based awaitables, yield based awaitables, thread based awaitables, etc.
 
 ```cpp
-template<typename RET, typename SUSPEND_TYPE>
-class Awaitable;
 
-template<typename RET, void>
-class Awaitable {
-    bool await_ready();
-    void await_suspend(std::coroutine_handle<> handle);
-    RET await_resume();
-};
+/// \brief A concept that checks if the type T can be used to be returned from await_suspend
+template <typename T>
+concept suspend_type = std::same_as<T, std::coroutine_handle<>> ||
+                        std::derived_from<T, std::coroutine_handle<>> || std::same_as<T, void> || std::same_as<T, bool>;
 
-template<typename RET, bool>
-class Awaitable {
-    bool await_ready();
-    bool await_suspend(std::coroutine_handle<> handle);
-    RET await_resume();
-};
-
-template<typename RET, std::coroutine_handle<>>
-class Awaitable {
-    bool await_ready();
-    std::coroutine_handle<> await_suspend(std::coroutine_handle<> handle);
-    RET await_resume();
+/// \brief A concept that checks if the type T is an awaitable type
+template <typename T>
+concept Awaitable = requires(T t, std::coroutine_handle<> h) {
+    { t.await_ready() } -> std::convertible_to<bool>;
+    { t.await_suspend(h) } -> suspend_type;
+    { t.await_resume() } -> std::same_as<T>;
 };
 
 ```
