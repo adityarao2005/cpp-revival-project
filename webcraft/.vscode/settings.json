@@ -97,7 +97,15 @@
 		"xstring": "cpp",
 		"xtr1common": "cpp",
 		"xtree": "cpp",
-		"xutility": "cpp"
+		"xutility": "cpp",
+		"__bit_reference": "cpp",
+		"__hash_table": "cpp",
+		"__locale": "cpp",
+		"__node_handle": "cpp",
+		"__split_buffer": "cpp",
+		"__verbose_abort": "cpp",
+		"execution": "cpp",
+		"__config": "cpp"
 	},
 	"C_Cpp.errorSquiggles": "enabled"
 }

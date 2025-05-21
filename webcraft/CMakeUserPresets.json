@@ -9,6 +9,13 @@
             }
         },
         {
+            "name": "default - mac",
+            "inherits": "vcpkg - mac",
+            "environment": {
+                "VCPKG_ROOT": "~/vcpkg"
+            }
+        },
+        {
             "name": "default - windows",
             "inherits": "vcpkg - windows",
             "environment": {

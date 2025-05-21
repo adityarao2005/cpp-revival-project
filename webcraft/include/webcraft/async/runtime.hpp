@@ -6,6 +6,9 @@
 #include "join_handle.hpp"
 #include <webcraft/concepts.hpp>
 #include <variant>
+#include <algorithm>
+#include <async/awaitable_resume_t.h>
+#include <ranges>
 
 namespace webcraft::async
 {
@@ -22,8 +25,6 @@ namespace webcraft::async
     {
     private:
         // Let them have the option to have a cached thread pool
-        size_t maxCachedThreads = 2 * std::thread::hardware_concurrency();
-        size_t workerThreads = std::thread::hardware_concurrency();
 
         friend class AsyncRuntime;
         static AsyncRuntimeConfig config;
@@ -33,6 +34,9 @@ namespace webcraft::async
         {
             AsyncRuntimeConfig::config = config;
         }
+
+        size_t maxWorkerThreads = 2 * std::thread::hardware_concurrency();
+        size_t minWorkerThreads = std::thread::hardware_concurrency();
     };
 
     /// @brief Singleton-like object that manages and provides a runtime for async operations to occur.
@@ -121,34 +125,34 @@ namespace webcraft::async
 #pragma region "AsyncRuntime.spawn"
 
         /// Spawns a task to run concurrently with the main task and returns a join handle which can be awaited for completion
-        template <typename T, typename... Args>
-        join_handle<T> spawn(std::function<Task<T>(Args...)> fn, Args... args)
+        join_handle spawn(Task<void> &&task)
         {
-            return spawn(fn(args...));
+            // Spawn task by creating join handle
+            auto handle = join_handle(std::move(task));
+
+            // spawn task internally using some kind of final awaiter
+            // TODO: implement this some how
+
+            return std::move(handle);
         }
 
-        // TODO: Solidify this once I'm done figuring out how join_handle should be implemented
-        /// Spawns a task to run concurrently with the main task and returns a join handle which can be awaited for completion
-        template <typename T>
-            requires webcraft::not_same_as<T, void>
-        join_handle<T> spawn(Task<T> &&task);
-
-        /// Spawns a task to run concurrently with the main task and returns a join handle which can be awaited for completion
-        join_handle<void> spawn(Task<void> &&task);
-
+    private:
+        // internal spawn implementation
+    public:
 #pragma endregion
 
 #pragma region "AsyncRuntime.join"
 
-        /// Joins all the task handles and passes a task to await their completion
-        template <typename... Rets>
-        Task<std::tuple<Rets...>> join(std::tuple<join_handle<Rets>...> handles);
-
-        /// Joins all the task handles and passes a task to await their completion
-        template <typename... Rets>
-        Task<std::tuple<Rets...>> join(join_handle<Rets>... handles)
+        /// @brief Joins all the task handles and passes a task to await their completion
+        /// @tparam range the type of the ranges to join
+        /// @param handles the range of join handles to join
+        /// @return task
+        template <std::ranges::range range>
+            requires std::same_as<join_handle, std::ranges::range_value_t<range>>
+        Task<void> join(range handles)
         {
-            return join(std::make_tuple(handles...));
+            for (auto handle : handles)
+                co_await handle;
         }
 
 #pragma endregion
@@ -156,75 +160,104 @@ namespace webcraft::async
 #pragma region "AsyncRuntime.when_all"
 
         /// @brief Executes all the tasks concurrently and returns the result of all tasks in the submitted order
-        /// @tparam ...Rets the return types of the tasks
-        /// @param ...tasks the tasks to execute
-        /// @return the result of all tasks in the submitted order
-        template <typename... Rets>
-        Task<std::tuple<Rets...>> when_all(Task<Rets> &&...tasks)
+        /// @tparam range the range of the view
+        /// @param tasks
+        /// @return
+        template <std::ranges::range range>
+            requires webcraft::not_same_as<Task<void>, std::ranges::range_value_t<range>>
+        Task<range> when_all(range &&tasks)
+        {
+            using T = std::ranges::range_value_t<range>;
+            // spawn each task and immediately collect their handles
+            // join the handles and return the result
+            std::vector<std::optional<T>> vec;
+
+            co_await join(tasks | std::ranges::transform(
+                                      [vec](Task<T> task)
+                                      {
+                                          vec.push_back({std::nullopt});
+                                          size_t index = vec.size() - 1;
+
+                                          auto fn = [vec, index](Task<T> task) -> Task<T>
+                                          {
+                                              vec[index] = co_await task;
+                                          };
+
+                                          return spawn(fn(task));
+                                      }));
+
+            co_return vec | std::transform([](std::optional<T> opt)
+                                           { return opt.value(); });
+        }
+
+        template <std::ranges::range range>
+            requires std::same_as<Task<void>, std::ranges::range_value_t<range>>
+        Task<void> when_all(range tasks)
         {
             // spawn each task and immediately collect their handles
-            auto handles = std::make_tuple(
-                spawn(std::move(tasks))...);
-
             // join the handles and return the result
-            return join(std::move(handles));
+            return join(tasks | std::views::transform([&](Task<void> t)
+                                                      { return spawn(std::move(t)); }) |
+                        std::ranges::to<std::vector>());
         }
 
 #pragma endregion
 
 #pragma region "AsyncRuntime.when_any"
-    private:
-        /// Generated by ChatGPT o4-mini-high
-        template <std::size_t... Is, typename... Rets>
-        Task<std::pair<std::size_t, std::variant<std::monostate, Rets...>>> when_any_impl(std::tuple<Task<Rets>...> tasks, std::index_sequence<Is...>)
-        {
-            // shared state to record “who finished first”
-            std::atomic<bool> triggered{false};
-            std::optional<std::pair<std::size_t, std::variant<std::monostate, Rets...>>> winner;
 
-            // spawn one watcher per task—each returns a variant carrying its own result
-            auto handles = std::tuple<join_handle<std::variant<std::monostate, Rets...>>...>{
-                spawn(
-                    // lambda → Task<std::variant<…>>
-                    [&, idx = Is](Task<Rets> tsk) -> Task<std::variant<std::monostate, Rets...>>
-                    {
-                        // co_await the real task
-                        auto val = co_await std::move(tsk);
-
-                        // wrap into a variant whose index is (idx+1), reserving 0 for monostate
-                        std::variant<std::monostate, Rets...> var{
-                            std::in_place_index<idx + 1>,
-                            std::move(val)};
-
-                        // record the very first one that races here
-                        bool expected = false;
-                        if (triggered.compare_exchange_strong(expected, true))
-                        {
-                            winner = std::pair{idx, var};
-                        }
-
-                        co_return var;
-                    }(std::get<Is>(tasks)) // immediately invoke the lambda on each task
-                    )...};
-
-            // wait until *all* watchers finish (they’re still co_awaiting their tasks)…
-            auto all_results = co_await join(std::move(handles));
-            // …but by now `winner` holds the index+value of the *first* one that completed
-            co_return *winner;
-        }
-
-    public:
         /// @brief Executes all the tasks concurrently and returns the first one which finishes and either cancels or discards the other tasks (once first one complete, the other tasks need not complete)
         /// @tparam ...Rets the return arguments of the tasks
         /// @param tasks the tasks to execute
         /// @return the result of the first task to finish
-        template <typename... Rets>
-        Task<std::pair<std::size_t, std::variant<std::monostate, Rets...>>>
-        when_any(std::tuple<Task<Rets>...> tasks)
+        template <std::ranges::range range>
+            requires webcraft::not_same_as<Task<void>, std::ranges::range_value_t<range>> && Awaitable<std::ranges::range_value_t<range>>
+        auto when_any(range tasks) -> Task<::async::awaitable_resume_t<std::ranges::range_value_t<range>>>
         {
-            return when_any_impl(
-                std::move(tasks),
-                std::index_sequence_for<Rets...>{});
+            // I know conceptually how it works but the atomic operations.... idk
+            using T = ::async::awaitable_resume_t<std::ranges::range_value_t<range>>;
+
+            std::optional<T> value;
+            std::atomic<bool> flag;
+
+            class async_event
+            {
+            private:
+                std::coroutine_handle<> h;
+
+            public:
+                bool await_ready() { return false; }
+                void await_suspend(std::coroutine_handle<> h)
+                {
+                    this->h = h;
+                }
+                void await_resume() {}
+
+                void set()
+                {
+                    h.resume();
+                }
+            };
+
+            async_event ev;
+
+            for (auto task : tasks)
+            {
+                auto fn = [flag, ev, value](Task<T> task) -> Task<void>
+                {
+                    auto val = co_await task;
+
+                    if (flag.compare_exchange_strong(false, true, std::memory_order_relaxed))
+                    {
+                        value = std::move(val);
+                        ev.set();
+                    }
+                };
+                spawn(fn(task));
+            }
+
+            co_await ev;
+
+            co_return value.value();
         }
 
 #pragma endregion

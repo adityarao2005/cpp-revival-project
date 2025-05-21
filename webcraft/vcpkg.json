@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "dependencies": [
     "cpp-async",
-    "fmt",
+    {
+      "name": "fmt",
+      "platform": "linux | windows"
+    },
     {
       "name": "liburing",
       "platform": "linux"

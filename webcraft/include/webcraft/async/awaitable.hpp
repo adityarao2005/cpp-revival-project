@@ -18,7 +18,7 @@ namespace webcraft::async
     concept Awaitable = requires(T t, std::coroutine_handle<> h) {
         { t.await_ready() } -> std::convertible_to<bool>;
         { t.await_suspend(h) } noexcept -> suspend_type;
-        { t.await_resume() } noexcept -> std::same_as<T>;
+        { t.await_resume() } noexcept;
     };
 
     template <typename T>
