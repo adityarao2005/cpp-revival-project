@@ -79,13 +79,13 @@ namespace webcraft::async
 		}
 
 		// awaitable concept functions
-		inline bool await_ready() { return ev->is_set(); }
-		inline void await_suspend(std::coroutine_handle<> h) noexcept
+		constexpr bool await_ready() { return ev->is_set(); }
+		constexpr void await_suspend(std::coroutine_handle<> h) noexcept
 		{
 			ev->add_listener([h]()
 							 { h.resume(); });
 		}
-		inline void await_resume() {}
+		constexpr void await_resume() {}
 	};
 
 };

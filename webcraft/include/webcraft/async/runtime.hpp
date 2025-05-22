@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <async/awaitable_resume_t.h>
 #include <ranges>
+#include <webcraft/async/config.hpp>
 
 namespace webcraft::async
 {
@@ -23,25 +24,6 @@ namespace webcraft::async
     class AsyncRuntime;
 
 #pragma endregion
-
-    /// @brief Configuration class for the AsyncRuntime.
-    /// This class allows the user to configure the AsyncRuntime before it is created.
-    class AsyncRuntimeConfig
-    {
-    protected:
-        friend class AsyncRuntime;
-        static AsyncRuntimeConfig config;
-
-    public:
-        static void set_config(AsyncRuntimeConfig config)
-        {
-            AsyncRuntimeConfig::config = config;
-        }
-
-        // TODO: add more configuration options
-        size_t maxWorkerThreads = 2 * std::thread::hardware_concurrency();
-        size_t minWorkerThreads = std::thread::hardware_concurrency();
-    };
 
     /// @brief Singleton-like object that manages and provides a runtime for async operations to occur.
     class AsyncRuntime
@@ -58,7 +40,7 @@ namespace webcraft::async
 #pragma endregion
 
 #pragma region "constructors"
-        // TODO: implement the constructors
+        // TODO: implement the constructors in cpp file
         AsyncRuntime(AsyncRuntimeConfig config);
         AsyncRuntime(const AsyncRuntime &) = delete;
         AsyncRuntime(AsyncRuntime &&) = delete;
@@ -127,13 +109,15 @@ namespace webcraft::async
 
         /// @brief Runs the task asynchronously.
         /// @param task the task to run
-        // TODO: implement this function
+        // TODO: implement this function in cpp file
         void run(Task<void> &&task);
 #pragma endregion
 
 #pragma region "AsyncRuntime.spawn"
 
-        /// Spawns a task to run concurrently with the main task and returns a join handle which can be awaited for completion
+        /// @brief Spawns a task to run concurrently with the main task and returns a join handle which can be awaited for completion
+        /// @param task the task to be spawned
+        /// @return the join handle for the task
         join_handle spawn(Task<void> &&task)
         {
             // Spawn task by creating join handle
@@ -183,7 +167,7 @@ namespace webcraft::async
 
     private:
         // internal spawn implementation
-        // TODO: implement this function
+        // TODO: implement this function in cpp file
         void queue_task_resumption(std::coroutine_handle<> h);
 
     public:
@@ -209,8 +193,8 @@ namespace webcraft::async
 
         /// @brief Executes all the tasks concurrently and returns the result of all tasks in the submitted order
         /// @tparam range the range of the view
-        /// @param tasks
-        /// @return
+        /// @param tasks the tasks to execute
+        /// @return the result of all tasks in the submitted order
         template <std::ranges::range range>
             requires webcraft::not_same_as<Task<void>, std::ranges::range_value_t<range>> && Awaitable<std::ranges::range_value_t<range>>
         auto when_all(range &&tasks) -> Task<std::vector<::async::awaitable_resume_t<std::ranges::range_value_t<range>>>>
@@ -239,6 +223,10 @@ namespace webcraft::async
                 std::ranges::to<std::vector>();
         }
 
+        /// @brief Executes all the tasks concurrently
+        /// @tparam range the range of the view
+        /// @param tasks the tasks to execute
+        /// @return an awaitable
         template <std::ranges::range range>
             requires std::same_as<Task<void>, std::ranges::range_value_t<range>>
         Task<void> when_all(range tasks)
@@ -267,42 +255,50 @@ namespace webcraft::async
             std::optional<T> value;
             std::atomic<bool> flag;
 
+            // Create an event which will resume the coroutine when the event is set
             struct async_event
             {
                 std::coroutine_handle<> h;
 
-                bool await_ready() { return false; }
-                void await_suspend(std::coroutine_handle<> h)
+                constexpr bool await_ready() { return false; }
+                constexpr void await_suspend(std::coroutine_handle<> h)
                 {
                     this->h = h;
                 }
-                void await_resume() {}
+                constexpr void await_resume() {}
 
                 void set()
                 {
+                    // resumes the coroutine
                     h.resume();
                 }
             };
 
+            // create teh event
             async_event ev;
 
+            // go through all the tasks and spawn them
             for (auto task : tasks)
             {
                 auto fn = [flag, ev, value](Task<T> task) -> Task<void>
                 {
                     auto val = co_await task;
 
+                    // only set the event if the flag is not set
                     if (flag.compare_exchange_strong(false, true, std::memory_order_relaxed))
                     {
                         value = std::move(val);
                         ev.set();
                     }
                 };
+                // spawn the task
                 spawn(fn(task));
             }
 
+            // wait for the event to be set
             co_await ev;
 
+            // return the value
             co_return value.value();
         }
 
@@ -318,13 +314,13 @@ namespace webcraft::async
             public:
                 AsyncRuntime &runtime;
 
-                bool await_ready() { return false; }
-                void await_suspend(std::coroutine_handle<> h)
+                constexpr bool await_ready() { return false; }
+                constexpr void await_suspend(std::coroutine_handle<> h)
                 {
                     // queue the task for resumption
                     runtime.queue_task_resumption(h);
                 }
-                void await_resume() {}
+                constexpr void await_resume() {}
             };
 
             co_await yield_awaiter{*this};
@@ -339,7 +335,7 @@ namespace webcraft::async
             return *io_service;
         }
 
-        /// @brief Gets the ExecutorService for the runtime.
+        /// @brief Gets the ExecutorService for the runtime. Helps run tasks in parallel
         /// @return the executor service
         inline ExecutorService &executor_service()
         {
@@ -356,7 +352,7 @@ namespace webcraft::async
     };
 
     template <typename T>
-    Task<T> value(T &&val)
+    Task<T> value_of(T &&val)
     {
         co_return std::forward<T>(val);
     }

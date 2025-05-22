@@ -36,45 +36,99 @@ Some of the services provided in `async_runtime` are:
  - The general outline of the class is shown below
 
 ```cpp
-class async_runtime {
+/// @brief Singleton-like object that manages and provides a runtime for async operations to occur.
+class AsyncRuntime
+{
+    friend class io::IOService;
+    friend class ExecutorService;
+    friend class TimerService;
+
 private:
-    friend class io_service;
-    friend class worker_service;
-    friend class timer_service;
+    AsyncRuntime(AsyncRuntimeConfig config);
 
 public:
-    template<typename T, typename... ARGS>
-    using async_function = std::function<async::task<T>(...ARGS)>;
+    AsyncRuntime(const AsyncRuntime &) = delete;
+    AsyncRuntime(AsyncRuntime &&) = delete;
+    AsyncRuntime &operator=(const AsyncRuntime &) = delete;
+    AsyncRuntime &operator=(AsyncRuntime &&) = delete;
+    ~AsyncRuntime();
 
-    /// Runs the task synchronously
-    template<typename T>
-    T run(async_function<T, async_runtime&> entry_point);
+    /// @brief Get the singleton instance of the AsyncRuntime.
+    /// @return The singleton instance of the AsyncRuntime.
+    static AsyncRuntime &get_instance();
 
-    /// Spawns a task to run concurrently with the main task and returns a join handle which can be awaited for completion
-    join_handle spawn(async::task<void> task);
+    /// @brief Runs the asynchronous function provided and returns the result.
+    /// @tparam T the type of the result of the task.
+    /// @tparam ...Args the types of the arguments to the task.
+    /// @param fn the function to run.
+    /// @return the result of the task.
+    template <typename T, typename... Args>
+    T run(std::function<Task<T>(Args...)> fn, Args... args);
 
-    /// Joins all the task handles and passes a task to await their completion
-    async::task<void> join(join_handle... handles)
+    /// @brief Runs the task asynchronously and returns the result.
+    /// @tparam T the type of the result of the task provided
+    /// @param task the task to run.
+    /// @return the result of the task.
+    template <typename T>
+        requires webcraft::not_same_as<T, void>
+    T run(Task<T> &&task);
 
-    /// Executes all the tasks concurrently and returns the result of all tasks in the submitted
-    template<typename... RET>
-    async::task<std::tuple<RET...>> all(async::task<RET>... tasks);
+    /// @brief Runs the task asynchronously.
+    /// @param task the task to run
+    void run(Task<void> &&task);
 
-    /// Executes all the tasks concurrently and returns the first one which finishes and either cancels or discards the other tasks (once first one complete, the other tasks need not complete)
-    template<typename... RET>
-    async::task<std::variant<RET...>> any(async::task<RET>... tasks);
+    /// @brief Spawns a task to run concurrently with the main task and returns a join handle which can be awaited for completion
+    /// @param task the task to be spawned
+    /// @return the join handle for the task
+    join_handle spawn(Task<void> &&task);
 
-    /// Yields the task to the caller and lets other tasks in the queue to resume before this one is resumed
-    async::task<void> yield();
+    /// @brief Joins all the task handles and passes a task to await their completion
+    /// @tparam range the type of the ranges to join
+    /// @param handles the range of join handles to join
+    /// @return task
+    template <std::ranges::range range>
+        requires std::same_as<join_handle, std::ranges::range_value_t<range>>
+    Task<void> join(range handles);
 
-    /// Returns the io_service associated with the runtime
-    io_service io_service();
+    /// @brief Executes all the tasks concurrently and returns the result of all tasks in the submitted order
+    /// @tparam range the range of the view
+    /// @param tasks
+    /// @return
+    template <std::ranges::range range>
+        requires webcraft::not_same_as<Task<void>, std::ranges::range_value_t<range>> && Awaitable<std::ranges::range_value_t<range>>
+    auto when_all(range &&tasks) -> Task<std::vector<::async::awaitable_resume_t<std::ranges::range_value_t<range>>>>;
 
-    /// Returns the worker_service associated with the runtime
-    worker_service worker_service();
+    /// @brief Executes all the tasks concurrently
+    /// @tparam range the range of the view
+    /// @param tasks the tasks to execute
+    /// @return an awaitable
+    template <std::ranges::range range>
+        requires std::same_as<Task<void>, std::ranges::range_value_t<range>>
+    Task<void> when_all(range tasks);
 
-    /// Returns the timer_service associated with the runtime
-    timer_service timer_service();
+    /// @brief Executes all the tasks concurrently and returns the first one which finishes and either cancels or discards the other tasks (once first one complete, the other tasks need not complete)
+    /// @tparam ...Rets the return arguments of the tasks
+    /// @param tasks the tasks to execute
+    /// @return the result of the first task to finish
+    template <std::ranges::range range>
+        requires webcraft::not_same_as<Task<void>, std::ranges::range_value_t<range>> && Awaitable<std::ranges::range_value_t<range>>
+    auto when_any(range tasks) -> Task<::async::awaitable_resume_t<std::ranges::range_value_t<range>>>;
+
+    /// @brief Yields the task to the caller and lets other tasks in the queue to resume before this one is resumed
+    /// @return returns a task which can be awaited
+    inline Task<void> yield();
+
+    /// @brief Gets the IOService for the runtime.
+    /// @return the IO service
+    io::IOService &io_service();
+
+    /// @brief Gets the ExecutorService for the runtime. Allows for tasks to run in parallel
+    /// @return the executor service
+    ExecutorService &executor_service();
+
+    /// @brief Gets the TimerService for the runtime.
+    /// @return the timer service
+    TimerService &timer_service();
 };
 ```
 
@@ -113,20 +167,64 @@ public:
 
 ```
 
-## worker_service
+## executor_service
 
 This class presents an interface for tasks to be run in parallel with each other leveraging the CPU cores by using thread pools. Also note that any timer based task or io based task if run on the pool will jump off the pool onto the main thread so if you need to do CPU bound tasks after you will need to reschedule onto the pool.
 
 ```cpp
-class worker_service {
+
+enum class SchedulingPriority
+{
+    LOW,
+    HIGH
+};
+
+struct ExecutorServiceParams
+{
+    int minWorkers;
+    int maxWorkers;
+    int idleTimeout;
+    WorkerStrategyType strategy;
+};
+
+class ExecutorServiceStrategy;
+
+/// @brief A class that represents an executor service that can be used to run tasks asynchronously.
+class ExecutorService
+{
+private:
+    friend class AsyncRuntime;
+    AsyncRuntime &runtime;
+
+    ExecutorService(AsyncRuntime &runtime, ExecutorServiceParams &params);
+
 public:
-    worker_service(async_runtime& runtime, size_t workers);
+    ~ExecutorService();
+    ExecutorService(const ExecutorService &) = delete;
+    ExecutorService(ExecutorService &&) = delete;
+    ExecutorService &operator=(const ExecutorService &) = delete;
+    ExecutorService &operator=(ExecutorService &&) = delete;
 
     /// Schedules the current coroutine onto the thread pool
-    async::task<void> schedule();
+    Task<void> schedule(SchedulingPriority priority = SchedulingPriority::LOW);
 
     /// Schedules an async function to be run on the thread pool asynchronously and provides a join handle which can be awaited to await completion
-    join_handle schedule(async_function<void> task_supplier);
+    join_handle schedule(Task<void> task, SchedulingPriority priority = SchedulingPriority::LOW);
+
+    /// @brief Runs the tasks in parallel
+    /// @param tasks the tasks to run in parallel
+    /// @return an awaitable
+    template <std::ranges::range range>
+        requires std::same_as<Task<void>, std::ranges::range_value_t<range>>
+    inline Task<void> runParallel(range tasks);
+
+    /// @brief Runs the tasks in parallel and return the results in the order provided
+    /// @param tasks the tasks to run in parallel
+    /// @return the results of the tasks in the order provided
+    template <std::ranges::range range>
+        requires webcraft::not_same_as<Task<void>, std::ranges::range_value_t<range>> && Awaitable<std::ranges::range_value_t<range>>
+    auto runParallel(range tasks) -> Task<std::vector<::async::awaitable_resume_t<std::ranges::range_value_t<range>>>>;
+
 };
 ```
 

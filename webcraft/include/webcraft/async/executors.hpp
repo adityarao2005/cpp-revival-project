@@ -9,10 +9,21 @@
 
 namespace webcraft::async
 {
-    enum class SchedulingPriority {
+    enum class SchedulingPriority
+    {
         LOW,
         HIGH
     };
+
+    struct ExecutorServiceParams
+    {
+        int minWorkers;
+        int maxWorkers;
+        int idleTimeout;
+        WorkerStrategyType strategy;
+    };
+
+    class ExecutorServiceStrategy;
 
     /// @brief A class that represents an executor service that can be used to run tasks asynchronously.
     class ExecutorService
@@ -20,9 +31,11 @@ namespace webcraft::async
     private:
         friend class AsyncRuntime;
         AsyncRuntime &runtime;
+        std::unique_ptr<ExecutorServiceStrategy> strategy; // strategy for the executor service
+        // TODO: implement the strategies for this in the cpp file
 
 #pragma region "constructors and destructors"
-        ExecutorService(AsyncRuntime &runtime, int minWorkers, int maxWorkers);
+        ExecutorService(AsyncRuntime &runtime, ExecutorServiceParams &params);
 
     public:
         ~ExecutorService();
@@ -39,8 +52,6 @@ namespace webcraft::async
 
         /// Schedules an async function to be run on the thread pool asynchronously and provides a join handle which can be awaited to await completion
         join_handle schedule(Task<void> task, SchedulingPriority priority = SchedulingPriority::LOW);
-
-
 
         /// @brief Runs the tasks in parallel
         /// @param tasks the tasks to run in parallel
