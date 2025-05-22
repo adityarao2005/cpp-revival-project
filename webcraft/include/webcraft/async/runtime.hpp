@@ -14,18 +14,21 @@ namespace webcraft::async
 {
 #pragma region "forward declarations"
 
-    class IOService;
+    namespace io
+    {
+        class IOService;
+    }
     class ExecutorService;
     class TimerService;
     class AsyncRuntime;
 
 #pragma endregion
 
+    /// @brief Configuration class for the AsyncRuntime.
+    /// This class allows the user to configure the AsyncRuntime before it is created.
     class AsyncRuntimeConfig
     {
-    private:
-        // Let them have the option to have a cached thread pool
-
+    protected:
         friend class AsyncRuntime;
         static AsyncRuntimeConfig config;
 
@@ -35,6 +38,7 @@ namespace webcraft::async
             AsyncRuntimeConfig::config = config;
         }
 
+        // TODO: add more configuration options
         size_t maxWorkerThreads = 2 * std::thread::hardware_concurrency();
         size_t minWorkerThreads = std::thread::hardware_concurrency();
     };
@@ -44,12 +48,17 @@ namespace webcraft::async
     {
     private:
 #pragma region "friend classes"
-        friend class IOService;
+        friend class io::IOService;
         friend class ExecutorService;
         friend class TimerService;
+
+        std::unique_ptr<io::IOService> io_service;
+        std::unique_ptr<ExecutorService> executor_service;
+        std::unique_ptr<TimerService> timer_service;
 #pragma endregion
 
 #pragma region "constructors"
+        // TODO: implement the constructors
         AsyncRuntime(AsyncRuntimeConfig config);
         AsyncRuntime(const AsyncRuntime &) = delete;
         AsyncRuntime(AsyncRuntime &&) = delete;
@@ -67,7 +76,6 @@ namespace webcraft::async
             // lazily initialize the instance (allow for config setup before you get the first instance)
             static AsyncRuntime instance(AsyncRuntimeConfig::config);
 
-            // TODO: configure the runtime here
             return instance;
         }
 #pragma endregion
@@ -119,6 +127,7 @@ namespace webcraft::async
 
         /// @brief Runs the task asynchronously.
         /// @param task the task to run
+        // TODO: implement this function
         void run(Task<void> &&task);
 #pragma endregion
 
@@ -131,13 +140,52 @@ namespace webcraft::async
             auto handle = join_handle(std::move(task));
 
             // spawn task internally using some kind of final awaiter
-            // TODO: implement this some how
+            class coro_awaiter
+            {
+            public:
+                struct promise_type
+                {
+                    auto get_return_object() { return coro_awaiter(this); }
+                    auto initial_suspend() { return std::suspend_always(); }
+                    auto final_suspend() noexcept { return std::suspend_always(); }
+                    void unhandled_exception() {}
+                    void return_void() {}
+                };
 
+                explicit coro_awaiter(promise_type *p) : handle{std::coroutine_handle<promise_type>::from_promise(*p)} {}
+                ~coro_awaiter()
+                {
+                    if (handle)
+                        handle.destroy();
+                }
+                coro_awaiter(const coro_awaiter &) = delete;
+                coro_awaiter(coro_awaiter &&) : handle{std::exchange(handle, nullptr)} {}
+
+                bool done() const { return handle.done(); }
+
+                std::coroutine_handle<promise_type> handle;
+            };
+
+            // Create a coroutine handle to run the task
+            auto fn = [](join_handle &handle) -> coro_awaiter
+            {
+                co_await handle.task;
+            };
+
+            // Create the coroutine handle
+            auto handle_awaiter = fn(handle);
+            // Get the coroutine handle
+            queue_task_resumption(handle_awaiter.handle);
+
+            // Return the join handle
             return std::move(handle);
         }
 
     private:
         // internal spawn implementation
+        // TODO: implement this function
+        void queue_task_resumption(std::coroutine_handle<> h);
+
     public:
 #pragma endregion
 
@@ -164,8 +212,8 @@ namespace webcraft::async
         /// @param tasks
         /// @return
         template <std::ranges::range range>
-            requires webcraft::not_same_as<Task<void>, std::ranges::range_value_t<range>>
-        Task<range> when_all(range &&tasks)
+            requires webcraft::not_same_as<Task<void>, std::ranges::range_value_t<range>> && Awaitable<std::ranges::range_value_t<range>>
+        auto when_all(range &&tasks) -> Task<std::vector<::async::awaitable_resume_t<std::ranges::range_value_t<range>>>>
         {
             using T = std::ranges::range_value_t<range>;
             // spawn each task and immediately collect their handles
@@ -187,7 +235,8 @@ namespace webcraft::async
                                       }));
 
             co_return vec | std::transform([](std::optional<T> opt)
-                                           { return opt.value(); });
+                                           { return opt.value(); }) |
+                std::ranges::to<std::vector>();
         }
 
         template <std::ranges::range range>
@@ -197,8 +246,7 @@ namespace webcraft::async
             // spawn each task and immediately collect their handles
             // join the handles and return the result
             return join(tasks | std::views::transform([&](Task<void> t)
-                                                      { return spawn(std::move(t)); }) |
-                        std::ranges::to<std::vector>());
+                                                      { return spawn(std::move(t)); }));
         }
 
 #pragma endregion
@@ -219,12 +267,10 @@ namespace webcraft::async
             std::optional<T> value;
             std::atomic<bool> flag;
 
-            class async_event
+            struct async_event
             {
-            private:
                 std::coroutine_handle<> h;
 
-            public:
                 bool await_ready() { return false; }
                 void await_suspend(std::coroutine_handle<> h)
                 {
@@ -265,21 +311,53 @@ namespace webcraft::async
 #pragma region "AsyncRuntime.yield"
         /// @brief Yields the task to the caller and lets other tasks in the queue to resume before this one is resumed
         /// @return returns a task which can be awaited
-        Task<void> yield();
+        inline Task<void> yield()
+        {
+            struct yield_awaiter
+            {
+            public:
+                AsyncRuntime &runtime;
+
+                bool await_ready() { return false; }
+                void await_suspend(std::coroutine_handle<> h)
+                {
+                    // queue the task for resumption
+                    runtime.queue_task_resumption(h);
+                }
+                void await_resume() {}
+            };
+
+            co_await yield_awaiter{*this};
+        }
 #pragma endregion
 
 #pragma region "asynchronous services"
         /// @brief Gets the IOService for the runtime.
         /// @return the IO service
-        IOService &io_service();
+        inline io::IOService &io_service()
+        {
+            return *io_service;
+        }
 
         /// @brief Gets the ExecutorService for the runtime.
         /// @return the executor service
-        ExecutorService &executor_service();
+        inline ExecutorService &executor_service()
+        {
+            return *executor_service;
+        }
 
         /// @brief Gets the TimerService for the runtime.
         /// @return the timer service
-        TimerService &timer_service();
+        TimerService &timer_service()
+        {
+            return *timer_service;
+        }
 #pragma endregion
     };
+
+    template <typename T>
+    Task<T> value(T &&val)
+    {
+        co_return std::forward<T>(val);
+    }
 }

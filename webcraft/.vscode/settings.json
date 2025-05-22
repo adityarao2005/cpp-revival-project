@@ -1,8 +1,8 @@
 {
 	"files.associations": {
+		"*.dbclient-js": "javascript",
 		"*.sqlbook": "sql",
 		"*.ndjson": "jsonl",
-		"*.dbclient-js": "javascript",
 		"cctype": "cpp",
 		"clocale": "cpp",
 		"cmath": "cpp",
@@ -105,7 +105,8 @@
 		"__split_buffer": "cpp",
 		"__verbose_abort": "cpp",
 		"execution": "cpp",
-		"__config": "cpp"
+		"__config": "cpp",
+		"ranges": "cpp"
 	},
 	"C_Cpp.errorSquiggles": "enabled"
 }
