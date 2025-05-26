@@ -4,10 +4,6 @@
   "dependencies": [
     "cpp-async",
     {
-      "name": "fmt",
-      "platform": "linux | windows"
-    },
-    {
       "name": "liburing",
       "platform": "linux"
     },

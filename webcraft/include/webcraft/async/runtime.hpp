@@ -1,9 +1,9 @@
 #pragma once
 
-#include "awaitable.hpp"
+#include <webcraft/async/awaitable.hpp>
 #include <thread>
 #include <optional>
-#include "join_handle.hpp"
+#include <webcraft/async/join_handle.hpp>
 #include <webcraft/concepts.hpp>
 #include <variant>
 #include <algorithm>
@@ -17,49 +17,49 @@ namespace webcraft::async
 
     namespace io
     {
-        class IOService;
+        class io_service;
     }
-    class ExecutorService;
-    class TimerService;
-    class AsyncRuntime;
+    class executor_service;
+    class timer_service;
+    class async_runtime;
 
 #pragma endregion
 
     /// @brief Singleton-like object that manages and provides a runtime for async operations to occur.
-    class AsyncRuntime
+    class async_runtime
     {
     private:
 #pragma region "friend classes"
-        friend class io::IOService;
-        friend class ExecutorService;
-        friend class TimerService;
+        friend class io::io_service;
+        friend class executor_service;
+        friend class timer_service;
 
-        std::unique_ptr<io::IOService> io_service;
-        std::unique_ptr<ExecutorService> executor_service;
-        std::unique_ptr<TimerService> timer_service;
+        std::unique_ptr<io::io_service> io_svc;
+        std::unique_ptr<executor_service> executor_svc;
+        std::unique_ptr<timer_service> timer_svc;
 #pragma endregion
 
 #pragma region "constructors"
         // TODO: implement the constructors in cpp file
-        AsyncRuntime(AsyncRuntimeConfig config);
-        AsyncRuntime(const AsyncRuntime &) = delete;
-        AsyncRuntime(AsyncRuntime &&) = delete;
-        AsyncRuntime &operator=(const AsyncRuntime &) = delete;
-        AsyncRuntime &operator=(AsyncRuntime &&) = delete;
-        ~AsyncRuntime();
+        async_runtime(std::unique_ptr<async_runtime_config> config);
+        async_runtime(const async_runtime &) = delete;
+        async_runtime(async_runtime &&) = delete;
+        async_runtime &operator=(const async_runtime &) = delete;
+        async_runtime &operator=(async_runtime &&) = delete;
+        ~async_runtime();
 #pragma endregion
 
     public:
 #pragma region "singleton initializer"
-        /// @brief Get the singleton instance of the AsyncRuntime.
-        /// @return The singleton instance of the AsyncRuntime.
-        static AsyncRuntime &get_instance()
-        {
-            // lazily initialize the instance (allow for config setup before you get the first instance)
-            static AsyncRuntime instance(AsyncRuntimeConfig::config);
+        /// @brief Get the singleton instance of the async_runtime.
+        /// @return The singleton instance of the async_runtime.
+        static async_runtime &get_instance();
+        // {
+        //     // lazily initialize the instance (allow for config setup before you get the first instance)
+        //     static async_runtime instance(*(async_runtime_config::config));
 
-            return instance;
-        }
+        //     return instance;
+        // }
 #pragma endregion
 
 #pragma region "AsyncRuntime.run"
@@ -68,10 +68,29 @@ namespace webcraft::async
         /// @tparam ...Args the types of the arguments to the task.
         /// @param fn the function to run.
         /// @return the result of the task.
-        template <typename T, typename... Args>
-        T run(std::function<Task<T>(Args...)> fn, Args... args)
+        template <class Fn, class... Args>
+            requires awaitable<std::invoke_result_t<Fn, Args...>> && std::is_void_v<::async::awaitable_resume_t<std::remove_cvref_t<std::invoke_result_t<Fn, Args...>>>>
+        void run_async(Fn &&fn, Args &&...args)
         {
-            return run(fn(args...));
+            auto task = std::invoke(std::forward<Fn>(fn), std::forward<Args>(args)...);
+
+            // If the task is a task<void>, we can just run it
+            run(std::move(task));
+        };
+
+        /// @brief Runs the asynchronous function provided and returns the result.
+        /// @tparam T the type of the result of the task.
+        /// @tparam ...Args the types of the arguments to the task.
+        /// @param fn the function to run.
+        /// @return the result of the task.
+        template <class Fn, class... Args>
+            requires awaitable<std::invoke_result_t<Fn, Args...>> && webcraft::not_true<std::is_void_v<::async::awaitable_resume_t<std::remove_cvref_t<std::invoke_result_t<Fn, Args...>>>>>
+        auto run_async(Fn &&fn, Args &&...args)
+        {
+            auto task = std::invoke(std::forward<Fn>(fn), std::forward<Args>(args)...);
+
+            // If the task is a task<void>, we can just run it
+            return run(std::move(task));
         };
 
         /// @brief Runs the task asynchronously and returns the result.
@@ -80,28 +99,28 @@ namespace webcraft::async
         /// @return the result of the task.
         template <typename T>
             requires webcraft::not_same_as<T, void>
-        T run(Task<T> &&task)
+        T run(task<T> &&t)
         {
             /// This is a bit of a hack, but we need to be able to return the result of the task
             std::optional<T> result;
 
-            // We need to create a lambda that captures the result and returns a Task<void>
+            // We need to create a lambda that captures the result and returns a task<void>
             // that sets the result when the task is done.
-            auto fn = [&result](Task<T> t) -> Task<void>
+            auto fn = [&result](task<T> t) -> task<void>
             {
                 result = co_await t;
             };
 
             // Invoke the lambda and receive the task
-            auto task_fn = fn(task);
+            auto task_fn = fn(t);
             // Run the task and waits synchronously for it to finish
             run(task_fn);
 
-            // Check if the result is valid - This should never happen since we are using Task<T> and not Task<void>
+            // Check if the result is valid - This should never happen since we are using task<T> and not task<void>
             // but we need to check for it just in case.
             if (!result.has_value())
             {
-                throw std::runtime_error("Task did not return a value");
+                throw std::runtime_error("task did not return a value");
             }
             // Get the result from the optional
             return result.value();
@@ -110,7 +129,7 @@ namespace webcraft::async
         /// @brief Runs the task asynchronously.
         /// @param task the task to run
         // TODO: implement this function in cpp file
-        void run(Task<void> &&task);
+        void run(task<void> &&t);
 #pragma endregion
 
 #pragma region "AsyncRuntime.spawn"
@@ -118,10 +137,10 @@ namespace webcraft::async
         /// @brief Spawns a task to run concurrently with the main task and returns a join handle which can be awaited for completion
         /// @param task the task to be spawned
         /// @return the join handle for the task
-        join_handle spawn(Task<void> &&task)
+        join_handle spawn(task<void> &&t)
         {
             // Spawn task by creating join handle
-            auto handle = join_handle(std::move(task));
+            auto handle = join_handle(std::move(t));
 
             // spawn task internally using some kind of final awaiter
             class coro_awaiter
@@ -153,7 +172,7 @@ namespace webcraft::async
             // Create a coroutine handle to run the task
             auto fn = [](join_handle &handle) -> coro_awaiter
             {
-                co_await handle.task;
+                co_await handle.t;
             };
 
             // Create the coroutine handle
@@ -179,9 +198,9 @@ namespace webcraft::async
         /// @tparam range the type of the ranges to join
         /// @param handles the range of join handles to join
         /// @return task
-        template <std::ranges::range range>
+        template <std::ranges::input_range range>
             requires std::same_as<join_handle, std::ranges::range_value_t<range>>
-        Task<void> join(range handles)
+        task<void> join(range handles)
         {
             for (auto handle : handles)
                 co_await handle;
@@ -195,45 +214,48 @@ namespace webcraft::async
         /// @tparam range the range of the view
         /// @param tasks the tasks to execute
         /// @return the result of all tasks in the submitted order
-        template <std::ranges::range range>
-            requires webcraft::not_same_as<Task<void>, std::ranges::range_value_t<range>> && Awaitable<std::ranges::range_value_t<range>>
-        auto when_all(range &&tasks) -> Task<std::vector<::async::awaitable_resume_t<std::ranges::range_value_t<range>>>>
+        template <std::ranges::input_range range>
+            requires webcraft::not_same_as<task<void>, std::ranges::range_value_t<range>> && awaitable<std::ranges::range_value_t<range>>
+        auto when_all(range &&tasks) -> task<std::vector<::async::awaitable_resume_t<std::ranges::range_value_t<range>>>>
         {
             using T = std::ranges::range_value_t<range>;
             // spawn each task and immediately collect their handles
             // join the handles and return the result
             std::vector<std::optional<T>> vec;
 
-            co_await join(tasks | std::ranges::transform(
-                                      [vec](Task<T> task)
+            co_await join(tasks | std::views::transform(
+                                      [vec](task<T> t)
                                       {
                                           vec.push_back({std::nullopt});
                                           size_t index = vec.size() - 1;
 
-                                          auto fn = [vec, index](Task<T> task) -> Task<T>
+                                          auto fn = [vec, index](task<T> t) -> task<T>
                                           {
-                                              vec[index] = co_await task;
+                                              vec[index] = co_await t;
                                           };
 
-                                          return spawn(fn(task));
+                                          return spawn(fn(t));
                                       }));
 
-            co_return vec | std::transform([](std::optional<T> opt)
-                                           { return opt.value(); }) |
-                std::ranges::to<std::vector>();
+            auto pipe = vec | std::views::transform([](std::optional<T> opt)
+                                                    { return opt.value(); });
+            std::vector<T> out;
+            out.reserve(std::ranges::distance(pipe));
+            std::ranges::copy(pipe, std::back_inserter(out));
+            co_return out;
         }
 
         /// @brief Executes all the tasks concurrently
         /// @tparam range the range of the view
         /// @param tasks the tasks to execute
         /// @return an awaitable
-        template <std::ranges::range range>
-            requires std::same_as<Task<void>, std::ranges::range_value_t<range>>
-        Task<void> when_all(range tasks)
+        template <std::ranges::input_range range>
+            requires std::same_as<task<void>, std::ranges::range_value_t<range>>
+        task<void> when_all(range tasks)
         {
             // spawn each task and immediately collect their handles
             // join the handles and return the result
-            return join(tasks | std::views::transform([&](Task<void> t)
+            return join(tasks | std::views::transform([&](task<void> t)
                                                       { return spawn(std::move(t)); }));
         }
 
@@ -245,9 +267,9 @@ namespace webcraft::async
         /// @tparam ...Rets the return arguments of the tasks
         /// @param tasks the tasks to execute
         /// @return the result of the first task to finish
-        template <std::ranges::range range>
-            requires webcraft::not_same_as<Task<void>, std::ranges::range_value_t<range>> && Awaitable<std::ranges::range_value_t<range>>
-        auto when_any(range tasks) -> Task<::async::awaitable_resume_t<std::ranges::range_value_t<range>>>
+        template <std::ranges::input_range range>
+            requires webcraft::not_same_as<task<void>, std::ranges::range_value_t<range>> && awaitable<std::ranges::range_value_t<range>>
+        auto when_any(range tasks) -> task<::async::awaitable_resume_t<std::ranges::range_value_t<range>>>
         {
             // I know conceptually how it works but the atomic operations.... idk
             using T = ::async::awaitable_resume_t<std::ranges::range_value_t<range>>;
@@ -278,21 +300,22 @@ namespace webcraft::async
             async_event ev;
 
             // go through all the tasks and spawn them
-            for (auto task : tasks)
+            for (auto t : tasks)
             {
-                auto fn = [flag, ev, value](Task<T> task) -> Task<void>
+                auto fn = [flag, ev, value](task<T> t) mutable -> task<void>
                 {
-                    auto val = co_await task;
+                    auto val = co_await t;
 
                     // only set the event if the flag is not set
-                    if (flag.compare_exchange_strong(false, true, std::memory_order_relaxed))
+                    bool check = false;
+                    if (flag.compare_exchange_strong(check, true, std::memory_order_relaxed))
                     {
                         value = std::move(val);
                         ev.set();
                     }
                 };
                 // spawn the task
-                spawn(fn(task));
+                spawn(fn(t));
             }
 
             // wait for the event to be set
@@ -307,15 +330,15 @@ namespace webcraft::async
 #pragma region "AsyncRuntime.yield"
         /// @brief Yields the task to the caller and lets other tasks in the queue to resume before this one is resumed
         /// @return returns a task which can be awaited
-        inline Task<void> yield()
+        inline task<void> yield()
         {
             struct yield_awaiter
             {
             public:
-                AsyncRuntime &runtime;
+                async_runtime &runtime;
 
                 constexpr bool await_ready() { return false; }
-                constexpr void await_suspend(std::coroutine_handle<> h)
+                void await_suspend(std::coroutine_handle<> h)
                 {
                     // queue the task for resumption
                     runtime.queue_task_resumption(h);
@@ -328,32 +351,26 @@ namespace webcraft::async
 #pragma endregion
 
 #pragma region "asynchronous services"
-        /// @brief Gets the IOService for the runtime.
+        /// @brief Gets the io_service for the runtime.
         /// @return the IO service
-        inline io::IOService &io_service()
-        {
-            return *io_service;
-        }
+        io::io_service &get_io_service();
 
-        /// @brief Gets the ExecutorService for the runtime. Helps run tasks in parallel
+        /// @brief Gets the executor_service for the runtime. Helps run tasks in parallel
         /// @return the executor service
-        inline ExecutorService &executor_service()
-        {
-            return *executor_service;
-        }
+        executor_service &get_executor_service();
 
-        /// @brief Gets the TimerService for the runtime.
+        /// @brief Gets the timer_service for the runtime.
         /// @return the timer service
-        TimerService &timer_service()
-        {
-            return *timer_service;
-        }
+        timer_service &get_timer_service();
 #pragma endregion
     };
 
     template <typename T>
-    Task<T> value_of(T &&val)
+    task<T> value_of(T &&val)
     {
         co_return std::forward<T>(val);
     }
 }
+
+#include <webcraft/async/executors.hpp>
+#include <webcraft/async/timer_service.hpp>

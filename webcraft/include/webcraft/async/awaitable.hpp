@@ -15,13 +15,13 @@ namespace webcraft::async
 
     /// \brief A concept that checks if the type T is an awaitable type
     template <typename T>
-    concept Awaitable = requires(T t, std::coroutine_handle<> h) {
+    concept awaitable = requires(T t, std::coroutine_handle<> h) {
         { t.await_ready() } -> std::convertible_to<bool>;
-        { t.await_suspend(h) } noexcept -> suspend_type;
-        { t.await_resume() } noexcept;
+        { t.await_suspend(h) } -> suspend_type;
+        { t.await_resume() };
     };
 
     template <typename T>
-    using Task = ::async::task<T>;
+    using task = ::async::task<T>;
 
 }

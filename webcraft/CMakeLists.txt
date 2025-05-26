@@ -5,11 +5,6 @@ project(WebCraft)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-
-if (NOT APPLE)
-    find_package(fmt CONFIG REQUIRED)
-endif()
-
 find_path(CPP_ASYNC_INCLUDE_DIRS "async/task.h")
 
 if (NOT CPP_ASYNC_INCLUDE_DIRS)
@@ -28,10 +23,6 @@ endif()
 
 file(GLOB_RECURSE WebCraft_SOURCES CONFIGURE_DEPENDS src/*.cpp)
 add_executable(WebCraft ${WebCraft_SOURCES})
-
-if (NOT APPLE)
-    target_link_libraries(WebCraft PRIVATE fmt::fmt)
-endif()
 
 if (WIN32)
     target_link_libraries(WebCraft PRIVATE wsock32 ws2_32)

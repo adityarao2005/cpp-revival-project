@@ -3,9 +3,9 @@
 
 namespace webcraft::async
 {
-    class AsyncRuntime;
+    class async_runtime;
 
-    enum class WorkerStrategyType
+    enum class worker_strategy_type
     {
         /// @brief Implements a work stealing strategy for the executor service
         WORK_STEALING,
@@ -17,24 +17,28 @@ namespace webcraft::async
         PRIORITY
     };
 
-    /// @brief Configuration class for the AsyncRuntime.
-    /// This class allows the user to configure the AsyncRuntime before it is created.
-    struct AsyncRuntimeConfig
+    /// @brief Configuration class for the async_runtime.
+    /// This class allows the user to configure the async_runtime before it is created.
+    struct async_runtime_config
     {
-    protected:
-        friend class AsyncRuntime;
-        static AsyncRuntimeConfig config;
-
-    public:
-        static void set_config(AsyncRuntimeConfig config)
-        {
-            AsyncRuntimeConfig::config = config;
-        }
-
         // TODO: add more configuration options
         size_t max_worker_threads = 2 * std::thread::hardware_concurrency();
         size_t min_worker_threads = std::thread::hardware_concurrency();
         size_t idle_timeout = 30000;
-        WorkerStrategyType worker_strategy = WorkerStrategyType::PRIORITY;
+        worker_strategy_type worker_strategy = worker_strategy_type::PRIORITY;
     };
+
+    namespace runtime_config
+    {
+        // TODO: implement the setters for the async_runtime_config
+
+        /// @brief Sets the maximum number of worker threads for the async_runtime.
+        void set_max_worker_threads(size_t max_threads);
+        /// @brief Sets the minimum number of worker threads for the async_runtime.
+        void set_min_worker_threads(size_t min_threads);
+        /// @brief Sets the idle timeout for the async_runtime.
+        void set_idle_timeout(size_t timeout);
+        /// @brief Sets the worker strategy for the async_runtime.
+        void set_worker_strategy(worker_strategy_type strategy);
+    }
 }

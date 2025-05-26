@@ -1,19 +1,18 @@
 #pragma once
 #include <webcraft/async/awaitable.hpp>
-#include <async/task.h>
 #include <webcraft/concepts.hpp>
 
 namespace webcraft::async
 {
-	class AsyncRuntime;
-	class ExecutorService;
+	class async_runtime;
+	class executor_service;
 
 	/// @brief A class that represents a handle to a spawned task that can be joined.
 	class join_handle
 	{
 #pragma region "friend classes"
-		friend class AsyncRuntime;
-		friend class ExecutorService;
+		friend class async_runtime;
+		friend class executor_service;
 #pragma endregion
 
 	private:
@@ -28,7 +27,9 @@ namespace webcraft::async
 
 		public:
 			// constructor
-			event() = default;
+			event() : flag(false)
+			{
+			}
 
 			// adds a listener to the event
 			void add_listener(std::function<void()> &&callback)
@@ -56,31 +57,32 @@ namespace webcraft::async
 
 	protected:
 		// the task that is being awaited, keep this in protected cuz we need friends to access it
-		Task<void> task;
+		task<void> t;
 
 		// basic constructor for friends only
-		join_handle(Task<void> &&t) : task(t), ev({})
+		join_handle(task<void> &&t) : t(std::move(t)), ev(std::make_shared<event>())
 		{
+
 			// create a new task which invokes the events
-			auto fn = [&](Task<void> &&task) -> Task<void>
+			auto fn = [&](task<void> &&t) -> task<void>
 			{
-				co_await task;
+				co_await t;
 
 				ev->invoke();
 			};
 
-			this->task = fn(std::move(task));
+			this->t = fn(std::move(this->t));
 		}
 
 	public:
 		// moveable constructor, moves the task and event
-		join_handle(join_handle &&h) : task(h.task), ev(h.ev)
+		join_handle(join_handle &&h) : t(h.t), ev(h.ev)
 		{
 		}
 
 		// awaitable concept functions
-		constexpr bool await_ready() { return ev->is_set(); }
-		constexpr void await_suspend(std::coroutine_handle<> h) noexcept
+		bool await_ready() { return ev->is_set(); }
+		void await_suspend(std::coroutine_handle<> h) noexcept
 		{
 			ev->add_listener([h]()
 							 { h.resume(); });
