@@ -46,10 +46,29 @@ webcraft::async::async_runtime::~async_runtime()
 
 void webcraft::async::async_runtime::queue_task_resumption(std::coroutine_handle<> h)
 {
+#ifdef _WIN32
+// PostCompletionStatus() OVERLAPPED
+#elif defined(__linux__)
+// io_uring_submit_sqe
+#elif defined(__APPLE__)
+
+#else
+
+#endif
 }
 
 void webcraft::async::async_runtime::run(webcraft::async::task<void> &&t)
 {
+
+#ifdef _WIN32
+// PostCompletionStatus() OVERLAPPED
+#elif defined(__linux__)
+// io_uring_submit_sqe
+#elif defined(__APPLE__)
+
+#else
+
+#endif
 }
 
 void webcraft::async::unsafe::initialize_runtime_handle(webcraft::async::unsafe::native_runtime_handle &handle)
@@ -74,6 +93,7 @@ void webcraft::async::unsafe::initialize_runtime_handle(webcraft::async::unsafe:
     {
         throw std::runtime_error("Failed to create kqueue handle: " + std::to_string(errno));
     }
+#else
 #endif
 }
 
@@ -85,5 +105,6 @@ void webcraft::async::unsafe::destroy_runtime_handle(webcraft::async::unsafe::na
     io_uring_queue_exit(&handle); // exit the io_uring queue
 #elif defined(__APPLE__)
     close(handle); // Close the kqueue handle
+#else
 #endif
 }

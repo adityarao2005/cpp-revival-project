@@ -1,6 +1,11 @@
 #pragma once
 #include <memory>
 
+// for now for PoC we'll use native libraries
+// in the future for a more robust solution, we can use either libuv or libevent
+// libevent: https://libevent.org/libevent-book/
+// libuv: https://docs.libuv.org/en/v1.x/guide/basics.html
+
 namespace webcraft::async
 {
     namespace unsafe
@@ -23,9 +28,11 @@ namespace webcraft::async
         using native_runtime_handle = io_uring;
 #elif defined(__APPLE__)
 #include <unistd.h>
-#include <sys/event.h
+#include <sys/event.h>
 
         using native_runtime_handle = int; // kqueue file descriptor
+#else
+// TODO: figure out what other OS's would be using
 #endif
 
         /// @brief Performs the initialization of the runtime handle based on the platform.
