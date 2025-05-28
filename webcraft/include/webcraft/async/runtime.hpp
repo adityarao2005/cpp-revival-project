@@ -10,6 +10,7 @@
 #include <async/awaitable_resume_t.h>
 #include <ranges>
 #include <webcraft/async/config.hpp>
+#include <webcraft/async/platform.hpp>
 
 namespace webcraft::async
 {
@@ -37,6 +38,18 @@ namespace webcraft::async
         std::unique_ptr<io::io_service> io_svc;
         std::unique_ptr<executor_service> executor_svc;
         std::unique_ptr<timer_service> timer_svc;
+#pragma endregion
+
+#pragma region "runtime handle"
+        runtime_handle handle; // platform specific runtime handle
+
+    public:
+        inline runtime_handle &get_runtime_handle()
+        {
+            return handle;
+        }
+
+    private:
 #pragma endregion
 
 #pragma region "constructors"
@@ -342,6 +355,8 @@ namespace webcraft::async
 #pragma endregion
 
 #pragma region "asynchronous services"
+
+        // TODO: implement these methods as well
         /// @brief Gets the io_service for the runtime.
         /// @return the IO service
         io::io_service &get_io_service();

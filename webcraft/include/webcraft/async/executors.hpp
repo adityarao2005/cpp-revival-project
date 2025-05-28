@@ -19,9 +19,9 @@ namespace webcraft::async
     /// @brief the parameters to initialize the executor service
     struct executor_service_params
     {
-        int minWorkers;
-        int maxWorkers;
-        int idleTimeout;
+        size_t minWorkers;
+        size_t maxWorkers;
+        std::chrono::milliseconds idleTimeout;
         worker_strategy_type strategy;
     };
 
