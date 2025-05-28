@@ -3,6 +3,7 @@
 #include <chrono>
 #include <concepts>
 #include <webcraft/async/runtime.hpp>
+#include <stop_token>
 
 namespace webcraft::async
 {

@@ -40,8 +40,7 @@ namespace webcraft::async
 #pragma endregion
 
 #pragma region "constructors"
-        // TODO: implement the constructors in cpp file
-        async_runtime(std::unique_ptr<async_runtime_config> config);
+        async_runtime(async_runtime_config &config);
         async_runtime(const async_runtime &) = delete;
         async_runtime(async_runtime &&) = delete;
         async_runtime &operator=(const async_runtime &) = delete;
@@ -54,12 +53,6 @@ namespace webcraft::async
         /// @brief Get the singleton instance of the async_runtime.
         /// @return The singleton instance of the async_runtime.
         static async_runtime &get_instance();
-        // {
-        //     // lazily initialize the instance (allow for config setup before you get the first instance)
-        //     static async_runtime instance(*(async_runtime_config::config));
-
-        //     return instance;
-        // }
 #pragma endregion
 
 #pragma region "AsyncRuntime.run"
@@ -128,7 +121,6 @@ namespace webcraft::async
 
         /// @brief Runs the task asynchronously.
         /// @param task the task to run
-        // TODO: implement this function in cpp file
         void run(task<void> &&t);
 #pragma endregion
 
@@ -186,7 +178,6 @@ namespace webcraft::async
 
     private:
         // internal spawn implementation
-        // TODO: implement this function in cpp file
         void queue_task_resumption(std::coroutine_handle<> h);
 
     public:
@@ -224,7 +215,7 @@ namespace webcraft::async
             std::vector<std::optional<T>> vec;
 
             co_await join(tasks | std::views::transform(
-                                      [vec](task<T> t)
+                                      [&](task<T> t)
                                       {
                                           vec.push_back({std::nullopt});
                                           size_t index = vec.size() - 1;
@@ -302,7 +293,7 @@ namespace webcraft::async
             // go through all the tasks and spawn them
             for (auto t : tasks)
             {
-                auto fn = [flag, ev, value](task<T> t) mutable -> task<void>
+                auto fn = [&]() mutable -> task<void>
                 {
                     auto val = co_await t;
 
@@ -315,7 +306,7 @@ namespace webcraft::async
                     }
                 };
                 // spawn the task
-                spawn(fn(t));
+                spawn(fn());
             }
 
             // wait for the event to be set
