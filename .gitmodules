@@ -1,0 +1,9 @@
+[submodule "WebCraft"]
+	path = WebCraft
+	url = https://github.com/adityarao2005/WebCraft.git
+[submodule "craft"]
+	path = craft
+	url = https://github.com/adityarao2005/cppcraft.git
+[submodule "cppcraft"]
+	path = cppcraft
+	url = https://github.com/adityarao2005/cppcraft.git
